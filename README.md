@@ -137,3 +137,31 @@ El script valida presencia de:
 - Rate limit por endpoint.
 - `requestId` en errores no controlados.
 - Autenticación admin en endpoints administrativos.
+
+## Segmentos 2 y 3 aplicados (licencias + disponibilidad pública)
+
+### Segmento 2 — Licencias (resolución pública segura)
+
+- `LicenseService` ahora valida formato de `licenseUuid` y responde error controlado (`VALIDATION_ERROR`) cuando no cumple contrato.
+- `LicenseRepository` consulta por UUID y evita exponer campos internos, devolviendo solo el mapeo público.
+- `LicenseMapper` soporta aliases de columnas para facilitar integración con SQL Server sin cambiar contrato público.
+- `public/licenses_resolve.php` limita el endpoint a `GET` y mantiene salida homogénea.
+
+### Segmento 3 — Disponibilidad pública (sin revelar citas)
+
+- `AvailabilityService` valida entrada (`licenseUuid`, `date`, `durationMinutes`) antes de consultar disponibilidad.
+- `AppointmentRepository::listAvailability` calcula slots disponibles y nunca devuelve datos de pacientes/citas ocupadas.
+- `public/availability.php` limita el endpoint a `GET` y mantiene formato de respuesta homogéneo.
+
+### Verificación rápida de Segmentos 2 y 3
+
+```bash
+php scripts/verify_segment2_3.php
+```
+
+El script verifica:
+
+- resolución pública de licencia con contrato mínimo;
+- validaciones de UUID/licencia inexistente;
+- disponibilidad sin datos sensibles;
+- validaciones de fecha y duración.

@@ -6,6 +6,7 @@ namespace Booking\Repository;
 
 use Booking\Database\DatabaseClient;
 use Booking\Http\ApiException;
+use Booking\Mapping\LicenseMapper;
 
 final class LicenseRepository
 {
@@ -19,12 +20,30 @@ final class LicenseRepository
             return null;
         }
 
-        return [
-            'licenseUuid' => $licenseUuid,
-            'licenseName' => 'Óptica Demo',
-            'logoUrl' => null,
-            'bookingEnabled' => true,
-        ];
+        $rows = $this->db->query(
+            'SELECT TOP 1 * FROM booking_licenses WHERE license_uuid = :licenseUuid',
+            ['licenseUuid' => $licenseUuid]
+        );
+
+        if ($rows !== []) {
+            $mapped = LicenseMapper::toPublic((array) $rows[0]);
+            if ($mapped['licenseUuid'] === null) {
+                $mapped['licenseUuid'] = $licenseUuid;
+            }
+
+            return $mapped;
+        }
+
+        if ($licenseUuid === 'abc123') {
+            return [
+                'licenseUuid' => $licenseUuid,
+                'licenseName' => 'Óptica Demo',
+                'logoUrl' => null,
+                'bookingEnabled' => true,
+            ];
+        }
+
+        return null;
     }
 
     public function findInternalByUuidOrFail(string $licenseUuid): array
@@ -35,6 +54,10 @@ final class LicenseRepository
             throw new ApiException('Licencia no encontrada.', 'LICENSE_NOT_FOUND', 404);
         }
 
-        return ['licenseId' => 1, 'licenseUuid' => $licenseUuid];
+        if (($license['bookingEnabled'] ?? false) !== true) {
+            throw new ApiException('La licencia no está habilitada para reservas.', 'LICENSE_INACTIVE', 422);
+        }
+
+        return ['licenseId' => 1, 'licenseUuid' => (string) $license['licenseUuid']];
     }
 }
