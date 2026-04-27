@@ -18,13 +18,16 @@ final class AvailabilityService
 
     public function getSlots(string $licenseUuid, string $date, int $durationMinutes = 30): array
     {
-        $this->validator->validateAvailabilityInput($licenseUuid, $date, $durationMinutes);
-        $this->licenseRepository->findInternalByUuidOrFail($licenseUuid);
+        $normalizedUuid = trim($licenseUuid);
+        $normalizedDate = trim($date);
+
+        $this->validator->validateAvailabilityInput($normalizedUuid, $normalizedDate, $durationMinutes);
+        $this->licenseRepository->findInternalByUuidOrFail($normalizedUuid);
 
         return [
-            'date' => $date,
+            'date' => $normalizedDate,
             'durationMinutes' => $durationMinutes,
-            'slots' => $this->appointmentRepository->listAvailability($licenseUuid, $date, $durationMinutes),
+            'slots' => $this->appointmentRepository->listAvailability($normalizedUuid, $normalizedDate, $durationMinutes),
         ];
     }
 }

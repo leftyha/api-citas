@@ -60,10 +60,20 @@ check(function () use ($container): void {
     throw new RuntimeException('No falló con licencia inexistente.');
 }, 'Segmento 2: licencia inexistente devuelve error controlado', $checks, $errors);
 
-$nextBusinessDate = (new DateTimeImmutable('tomorrow'))->format('Y-m-d');
+$cursor = new DateTimeImmutable('tomorrow');
+while ((int) $cursor->format('N') === 7) {
+    $cursor = $cursor->modify('+1 day');
+}
+$nextBusinessDate = $cursor->format('Y-m-d');
 
 check(function () use ($container, $nextBusinessDate): void {
     $result = $container['availabilityService']->getSlots('abc123', $nextBusinessDate, 30);
+
+    $allowedRootKeys = ['date', 'durationMinutes', 'slots'];
+    $rootDiff = array_diff(array_keys($result), $allowedRootKeys);
+    if ($rootDiff !== []) {
+        throw new RuntimeException('Se están exponiendo campos no públicos en disponibilidad.');
+    }
 
     if (!isset($result['slots']) || !is_array($result['slots'])) {
         throw new RuntimeException('No se devolvió el arreglo slots.');
