@@ -205,3 +205,18 @@ php scripts/verify_segment4_5.php
 ```bash
 php scripts/verify_segment6_7.php
 ```
+
+## Segmento 8 aplicado (QA técnico final + hardening pre-producción)
+
+### Cobertura implementada
+
+- Se agregó `scripts/verify_segment8.php` con pruebas de seguridad de token público (`manipulado` y `expirado`) validando fallo controlado con `APPOINTMENT_NOT_FOUND`.
+- Se añadieron verificaciones de privacidad para confirmar que disponibilidad pública y consulta pública no exponen IDs internos ni datos sensibles sin enmascarar.
+- Se incorporó revisión técnica de configuración para asegurar que CORS y secretos críticos dependen de variables de entorno.
+- Se validó que endpoints administrativos mantienen protección por bearer token.
+
+### Verificación rápida de Segmento 8
+
+```bash
+php scripts/verify_segment8.php
+```
