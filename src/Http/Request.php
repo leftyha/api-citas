@@ -6,6 +6,33 @@ namespace Booking\Http;
 
 final class Request
 {
+    public static function assertMethod(string ...$allowedMethods): void
+    {
+        $normalized = array_values(array_unique(array_filter(array_map(
+            static fn (string $method): string => strtoupper(trim($method)),
+            $allowedMethods
+        ))));
+
+        if ($normalized === []) {
+            throw new \RuntimeException('Debe definir al menos un método HTTP permitido.');
+        }
+
+        $current = self::method();
+        if (in_array($current, $normalized, true)) {
+            return;
+        }
+
+        throw new ApiException(
+            'Método HTTP no permitido para este endpoint.',
+            'METHOD_NOT_ALLOWED',
+            405,
+            [
+                'allowedMethods' => $normalized,
+                'receivedMethod' => $current,
+            ]
+        );
+    }
+
     public static function method(): string
     {
         return strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));

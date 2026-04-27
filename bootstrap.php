@@ -23,7 +23,9 @@ use Booking\Booking\AppointmentValidator;
 use Booking\Booking\AvailabilityService;
 use Booking\Booking\LicenseService;
 use Booking\Config\Config;
+use Booking\Config\DeploymentGuard;
 use Booking\Database\DatabaseClient;
+use Booking\Observability\Logger;
 use Booking\Repository\AppointmentRepository;
 use Booking\Repository\LicenseRepository;
 use Booking\Security\AdminAuth;
@@ -31,6 +33,7 @@ use Booking\Security\AppointmentTokenService;
 use Booking\Security\RateLimiter;
 
 $config = Config::load(__DIR__ . '/src/Config/config.php');
+DeploymentGuard::assertSecure($config);
 $db = new DatabaseClient($config['database']);
 $licenseRepository = new LicenseRepository($db);
 $appointmentRepository = new AppointmentRepository($db);
@@ -40,7 +43,8 @@ $validator = new AppointmentValidator($config['booking']);
 return [
     'config' => $config,
     'db' => $db,
-    'rateLimiter' => new RateLimiter($config['security']['rate_limit']),
+    'logger' => new Logger($config['observability'] ?? []),
+    'rateLimiter' => new RateLimiter($config['security']['rate_limit'], $db),
     'adminAuth' => new AdminAuth($config['security']['admin']),
     'licenseService' => new LicenseService($licenseRepository),
     'availabilityService' => new AvailabilityService($appointmentRepository, $licenseRepository, $validator),
