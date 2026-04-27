@@ -185,3 +185,23 @@ El script verifica:
 ```bash
 php scripts/verify_segment4_5.php
 ```
+
+## Segmentos 6 y 7 aplicados (admin completo + persistencia SQL v1)
+
+### Segmento 6 — API admin completa con autorización y reglas de estado
+
+- `AppointmentRepository` ahora implementa `listAdmin`, `findAdminById`, `updateAdmin` y `transitionStatus` con SQL real.
+- `AppointmentService` agrega validación de `appointmentId` y evita actualizar `status` por el endpoint de edición general.
+- `StatusMapper` incorpora normalización de estado y reglas explícitas de transición (`pending -> confirmed/cancelled`, `confirmed -> cancelled`).
+
+### Segmento 7 — Persistencia real SQL Server + transaccionalidad v1
+
+- Se eliminaron stubs de datos mock en repositorios principales (`LicenseRepository`, `AppointmentRepository`).
+- `DatabaseClient` define estrategia transaccional explícita con `SET XACT_ABORT ON; BEGIN TRANSACTION` y control de estado transaccional interno.
+- Fallas de base de datos se encapsulan sin filtrar detalles SQL (`RuntimeException` genérica) y los endpoints mantienen respuesta controlada.
+
+### Verificación rápida de Segmentos 6 y 7
+
+```bash
+php scripts/verify_segment6_7.php
+```

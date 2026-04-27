@@ -10,6 +10,7 @@ use Booking\Repository\LicenseRepository;
 use Booking\Security\Masking;
 use Booking\Security\AppointmentTokenService;
 use Booking\Database\DatabaseClient;
+use Booking\Mapping\StatusMapper;
 
 final class AppointmentService
 {
@@ -93,6 +94,10 @@ final class AppointmentService
 
     public function getAdmin(int $appointmentId): array
     {
+        if ($appointmentId <= 0) {
+            throw new ApiException('appointmentId inválido.', 'VALIDATION_ERROR', 400, ['field' => 'appointmentId']);
+        }
+
         $appointment = $this->appointmentRepository->findAdminById($appointmentId);
         if ($appointment === null) {
             throw new ApiException('Cita no encontrada.', 'APPOINTMENT_NOT_FOUND', 404);
@@ -103,12 +108,44 @@ final class AppointmentService
 
     public function updateAdmin(int $appointmentId, array $input): array
     {
-        return $this->appointmentRepository->updateAdmin($appointmentId, $input);
+        if ($appointmentId <= 0) {
+            throw new ApiException('appointmentId inválido.', 'VALIDATION_ERROR', 400, ['field' => 'appointmentId']);
+        }
+
+        if (isset($input['status'])) {
+            throw new ApiException('status no se actualiza por este endpoint.', 'VALIDATION_ERROR', 400, ['field' => 'status']);
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $updated = $this->appointmentRepository->updateAdmin($appointmentId, $input);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollback();
+            throw $e;
+        }
+
+        return $updated;
     }
 
     public function transitionAdmin(int $appointmentId, string $status): array
     {
-        return $this->appointmentRepository->transitionStatus($appointmentId, $status);
+        if ($appointmentId <= 0) {
+            throw new ApiException('appointmentId inválido.', 'VALIDATION_ERROR', 400, ['field' => 'appointmentId']);
+        }
+
+        $normalizedStatus = StatusMapper::normalizeInternal($status);
+
+        $this->db->beginTransaction();
+        try {
+            $transitioned = $this->appointmentRepository->transitionStatus($appointmentId, $normalizedStatus);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollback();
+            throw $e;
+        }
+
+        return $transitioned;
     }
 
     private function maskPhone(string $phone): string

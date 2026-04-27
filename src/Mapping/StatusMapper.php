@@ -8,11 +8,38 @@ final class StatusMapper
 {
     public static function toPublic(string $internalStatus): string
     {
-        return match ($internalStatus) {
-            'P', 'pending' => 'pending',
-            'C', 'confirmed' => 'confirmed',
-            'X', 'cancelled' => 'cancelled',
+        return match (strtolower(trim($internalStatus))) {
+            'p', 'pending' => 'pending',
+            'c', 'confirmed' => 'confirmed',
+            'x', 'cancelled', 'canceled' => 'cancelled',
             default => 'pending',
+        };
+    }
+
+    public static function normalizeInternal(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'p', 'pending' => 'pending',
+            'c', 'confirmed' => 'confirmed',
+            'x', 'cancelled', 'canceled' => 'cancelled',
+            default => 'pending',
+        };
+    }
+
+    public static function canTransition(string $from, string $to): bool
+    {
+        $normalizedFrom = self::normalizeInternal($from);
+        $normalizedTo = self::normalizeInternal($to);
+
+        if ($normalizedFrom === $normalizedTo) {
+            return true;
+        }
+
+        return match ($normalizedFrom) {
+            'pending' => in_array($normalizedTo, ['confirmed', 'cancelled'], true),
+            'confirmed' => $normalizedTo === 'cancelled',
+            'cancelled' => false,
+            default => false,
         };
     }
 }
