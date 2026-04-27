@@ -169,7 +169,11 @@ final class AppointmentRepository
 
         if (!empty($filters['status'])) {
             $clauses[] = 'a.status = :status';
-            $params['status'] = StatusMapper::normalizeInternal((string) $filters['status']);
+            try {
+                $params['status'] = StatusMapper::normalizeInternal((string) $filters['status']);
+            } catch (\InvalidArgumentException) {
+                throw new ApiException('status inválido.', 'VALIDATION_ERROR', 400, ['field' => 'status']);
+            }
         }
 
         if (!empty($filters['professionalId'])) {
@@ -300,7 +304,11 @@ final class AppointmentRepository
             throw new ApiException('Cita no encontrada.', 'APPOINTMENT_NOT_FOUND', 404);
         }
 
-        $next = StatusMapper::normalizeInternal($status);
+        try {
+            $next = StatusMapper::normalizeInternal($status);
+        } catch (\InvalidArgumentException) {
+            throw new ApiException('status inválido.', 'VALIDATION_ERROR', 400, ['field' => 'status']);
+        }
         $from = (string) ($current['status'] ?? 'pending');
 
         if (!StatusMapper::canTransition($from, $next)) {

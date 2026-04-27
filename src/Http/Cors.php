@@ -26,7 +26,7 @@ final class Cors
 
         header('Access-Control-Allow-Origin: ' . $allowOrigin);
         header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Request-Id, X-Channel, Idempotency-Key');
-        header('Access-Control-Allow-Methods: GET, POST, PATCH, OPTIONS');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, OPTIONS');
         header('Access-Control-Max-Age: 600');
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {

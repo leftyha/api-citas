@@ -83,16 +83,48 @@ final class Request
 
     public static function ip(): string
     {
+        $remoteAddr = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+        if ($remoteAddr === '') {
+            return '0.0.0.0';
+        }
+
+        if (!self::isTrustedProxy($remoteAddr)) {
+            return $remoteAddr;
+        }
+
         $forwardedFor = trim((string) ($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''));
-        if ($forwardedFor !== '') {
-            $ip = trim(explode(',', $forwardedFor)[0]);
-            if ($ip !== '') {
+        if ($forwardedFor === '') {
+            return $remoteAddr;
+        }
+
+        foreach (explode(',', $forwardedFor) as $candidate) {
+            $ip = trim($candidate);
+            if ($ip !== '' && filter_var($ip, FILTER_VALIDATE_IP)) {
                 return $ip;
             }
         }
 
-        $remoteAddr = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
-        return $remoteAddr !== '' ? $remoteAddr : '0.0.0.0';
+        return $remoteAddr;
+    }
+
+    private static function isTrustedProxy(string $remoteAddr): bool
+    {
+        $trusted = array_values(array_filter(array_map(
+            static fn (string $value): string => trim($value),
+            explode(',', (string) (getenv('BOOKING_TRUSTED_PROXIES') ?: ''))
+        )));
+
+        if ($trusted === []) {
+            return false;
+        }
+
+        foreach ($trusted as $proxy) {
+            if ($proxy === $remoteAddr) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function requestId(): string
