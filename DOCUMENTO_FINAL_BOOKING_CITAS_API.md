@@ -13,23 +13,13 @@ Exponer una API de citas con separación clara entre acceso público y operació
 
 ## Recursos de API
 
-## 1) Licencias públicas
-
-### `GET /public/licenses_resolve.php`
-
-Resuelve una licencia válida para habilitar el resto del flujo público.
-
-**Entrada**
-- `licenseUuid` (query string)
-
-**Salida**
-- Datos públicos de licencia.
-
-## 2) Disponibilidad
+## 1) Disponibilidad
 
 ### `GET /public/availability.php`
 
 Devuelve slots de agenda disponibles sin exponer datos de citas existentes.
+
+> La resolución `license_uuid -> license_id` es interna y se ejecuta dentro de servicios/repositorios; no se expone como endpoint público.
 
 **Entrada**
 - `licenseUuid`
@@ -39,7 +29,7 @@ Devuelve slots de agenda disponibles sin exponer datos de citas existentes.
 **Salida**
 - Lista de `slots` disponibles.
 
-## 3) Creación de cita
+## 2) Creación de cita
 
 ### `POST /public/appointments_create.php`
 
@@ -53,7 +43,7 @@ Registra una cita si el horario está disponible y la entrada cumple reglas de n
 **Salida**
 - Resumen público de cita y token de consulta.
 
-## 4) Consulta pública de cita
+## 3) Consulta pública de cita
 
 ### `GET /public/appointments_public_get.php`
 
@@ -65,7 +55,7 @@ Consulta una cita mediante token público firmado.
 **Salida**
 - Estado y datos públicos de la cita en formato enmascarado cuando aplica.
 
-## 5) Operación administrativa
+## 4) Operación administrativa
 
 Requiere `Authorization: Bearer <token>`.
 
