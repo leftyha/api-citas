@@ -24,6 +24,7 @@ use Booking\Booking\AvailabilityService;
 use Booking\Booking\LicenseService;
 use Booking\Config\Config;
 use Booking\Config\DeploymentGuard;
+use Booking\Config\Dotenv;
 use Booking\Database\DatabaseClient;
 use Booking\Observability\Logger;
 use Booking\Repository\AppointmentRepository;
@@ -32,6 +33,7 @@ use Booking\Security\AdminAuth;
 use Booking\Security\AppointmentTokenService;
 use Booking\Security\RateLimiter;
 
+Dotenv::load(__DIR__ . '/.env');
 $config = Config::load(__DIR__ . '/src/Config/config.php');
 DeploymentGuard::assertSecure($config);
 $db = new DatabaseClient($config['database']);
