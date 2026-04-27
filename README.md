@@ -165,3 +165,23 @@ El script verifica:
 - validaciones de UUID/licencia inexistente;
 - disponibilidad sin datos sensibles (ni en `slots` ni en la raíz del payload);
 - validaciones de fecha y duración.
+
+## Segmentos 4 y 5 aplicados (creación de cita + token público)
+
+### Segmento 4 — Creación de cita pública
+
+- `AppointmentValidator` ahora aplica validaciones fuertes de payload (rangos, email, duración, `startAt` con zona horaria y fecha futura).
+- `AppointmentService::create` ejecuta creación en transacción y responde contrato público mínimo (`data.appointment`).
+- `AppointmentRepository::create` implementa validación de conflicto (`pending/confirmed`), idempotencia operativa para doble submit y creación real por SQL.
+
+### Segmento 5 — Token público y consulta de cita propia
+
+- `AppointmentTokenService` ahora emite token firmado con payload versionado, `kid`, expiración y parsing robusto.
+- `AppointmentRepository::findPublicById` ejecuta lookup real y mapea solo datos necesarios para salida pública.
+- `AppointmentService::getPublicByToken` valida token/cita/licencia y devuelve datos mínimos con documento y teléfono enmascarados.
+
+### Verificación rápida de Segmentos 4 y 5
+
+```bash
+php scripts/verify_segment4_5.php
+```

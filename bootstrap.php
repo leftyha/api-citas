@@ -48,6 +48,7 @@ return [
         $appointmentRepository,
         $licenseRepository,
         $tokenService,
-        $validator
+        $validator,
+        $db
     ),
 ];
