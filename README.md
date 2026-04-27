@@ -209,6 +209,15 @@ php scripts/verify_segment4_5.php
 php scripts/verify_segment6_7.php
 ```
 
+
+## Suite unificada de pruebas unitarias negocio-funcional
+
+Además de los verificadores por segmento, existe una suite unificada orientada a flujos de negocio end-to-end a nivel unitario (licencias, disponibilidad, creación/consulta pública, administración y hardening):
+
+```bash
+php scripts/test_business_functional.php
+```
+
 ## Segmento 8 aplicado (QA técnico final + hardening pre-producción)
 
 ### Cobertura implementada
