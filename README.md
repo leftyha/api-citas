@@ -91,8 +91,13 @@ Variables principales:
 
 ## Pruebas del core
 
-Suite funcional de negocio disponible en:
+Suites disponibles:
 
 ```bash
 php scripts/test_business_functional.php
+php scripts/test_full_regression.php
 ```
+
+Checklist completo de pruebas E2E/negativas/regresión:
+
+- `TESTING_CHECKLIST.md`
