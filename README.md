@@ -134,6 +134,12 @@ Variables principales:
 >
 > `bootstrap.php` carga automáticamente `.env` (si existe) y **no sobreescribe** variables ya definidas por el entorno del servidor.
 
+Plantillas incluidas:
+
+- `.env.example`: base para desarrollo/local.
+- `.env.production.example`: base endurecida para despliegue en producción (reemplazando placeholders `<<...>>`).
+
+
 ## Pruebas del core
 
 Suites disponibles:
