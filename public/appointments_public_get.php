@@ -8,9 +8,10 @@ use Booking\Http\JsonResponse;
 use Booking\Http\Request;
 
 $container = require __DIR__ . '/../bootstrap.php';
-Cors::apply();
+Cors::apply($container['config']['app']['cors'] ?? []);
 
 try {
+    $container['rateLimiter']->assertAllowed('public:appointments_public_get:' . Request::ip());
     $token = Request::query('appointmentToken');
 
     if ($token === null || $token === '') {
@@ -23,5 +24,5 @@ try {
 } catch (ApiException $e) {
     JsonResponse::error($e->getErrorCode(), $e->getMessage(), $e->getStatusCode(), $e->getErrors());
 } catch (Throwable) {
-    JsonResponse::error('INTERNAL_ERROR', 'Error interno.', 500);
+    JsonResponse::error('INTERNAL_ERROR', 'Error interno.', 500, ['requestId' => Request::requestId()]);
 }

@@ -7,6 +7,13 @@ return [
         'timezone' => 'America/Caracas',
         'base_path' => '/ws/dashboard-usd/api',
         'allowed_channels' => ['web', 'call-center', 'store', 'admin', 'internal'],
+        'cors' => [
+            'allowed_origins' => array_values(
+                array_filter(
+                    array_map('trim', explode(',', (string) (getenv('BOOKING_CORS_ALLOWED_ORIGINS') ?: '*')))
+                )
+            ),
+        ],
     ],
     'database' => [
         'driver' => 'sqlsrv',
@@ -26,8 +33,8 @@ return [
             'token' => getenv('BOOKING_ADMIN_TOKEN') ?: 'change-me-in-production',
         ],
         'rate_limit' => [
-            'max_attempts' => 60,
-            'window_seconds' => 60,
+            'max_attempts' => (int) (getenv('BOOKING_RATE_LIMIT_MAX_ATTEMPTS') ?: 60),
+            'window_seconds' => (int) (getenv('BOOKING_RATE_LIMIT_WINDOW_SECONDS') ?: 60),
         ],
     ],
 ];
