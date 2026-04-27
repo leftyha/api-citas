@@ -1,57 +1,82 @@
-# API Citas
+# API de Citas
 
-API REST en PHP para gestión de citas médicas con endpoints públicos y administrativos.
+API REST en PHP para la gestión operativa de agendas médicas. Está pensada para cubrir dos frentes de negocio: autoservicio de pacientes (canal público) y operación interna de backoffice (canal administrativo).
 
-## Base conceptual
+## Propósito funcional
 
-- Endpoints delgados en `public/` y `admin/`.
-- Lógica de negocio en `src/Booking`.
-- Acceso a datos en `src/Repository` vía `src/Database/DatabaseClient.php`.
-- Contrato HTTP homogéneo con `src/Http/JsonResponse.php` y `src/Http/ApiException.php`.
+La API resuelve el ciclo completo de una cita:
 
-## Endpoints públicos
+1. Consultar disponibilidad por sede/licencia y duración.
+2. Registrar una cita con datos del paciente.
+3. Entregar un token público para consulta posterior.
+4. Permitir que el equipo interno liste, consulte, edite y cambie el estado de citas.
 
-> Nota: la resolución interna `license_uuid -> license_id` ocurre dentro de la API en cada flujo público que recibe `licenseUuid`. No existe endpoint público dedicado para ese proceso interno.
+## Alcance de negocio
 
-### `GET /public/availability.php`
-Lista slots disponibles para una licencia en una fecha.
+- **Canal público:** permite reservar y consultar sin exponer datos sensibles completos.
+- **Canal administrativo:** permite operar la agenda con autenticación de backoffice.
+- **Seguridad operacional:** incluye control de tasa por IP, token público de cita y control de acceso con Bearer token administrativo.
+- **Integridad de agenda:** evita doble reserva de horario activo y maneja transiciones válidas de estado.
 
-**Query params**
-- `licenseUuid` (string, requerido)
-- `date` (YYYY-MM-DD, requerido)
-- `durationMinutes` (int, requerido)
+## Arquitectura funcional
 
-### `POST /public/appointments_create.php`
-Crea una cita pública.
+- `public/` y `admin/`: capa HTTP con endpoints delgados.
+- `src/Booking`: casos de uso del negocio (disponibilidad y citas).
+- `src/Repository`: acceso a datos SQL Server.
+- `src/Security`: autenticación admin, emisión/validación de token de cita y rate limiting.
+- `src/Http`: contrato homogéneo de respuestas de éxito/error y parsing de request.
 
-**Body JSON**
-- `licenseUuid`
-- `serviceType`
-- `professionalId`
-- `startAt`
-- `durationMinutes`
-- `customerName`
-- `customerDocument`
-- `customerPhone`
-- `customerEmail`
+## Endpoints de la API
 
-> Compatibilidad: también se acepta `customer` anidado con `name/document/phone/email`, y la API lo normaliza internamente.
+### Públicos
 
-### `GET /public/appointments_public_get.php`
-Consulta una cita por token público.
+| Método | Endpoint | Objetivo funcional | Entrada principal | Resultado esperado |
+|---|---|---|---|---|
+| GET | `/public/availability.php` | Consultar slots libres por fecha, licencia y duración. | Query: `licenseUuid`, `date` (YYYY-MM-DD), `durationMinutes` (15/30/45/60/90/120). | Lista de bloques disponibles para reservar. |
+| POST | `/public/appointments_create.php` | Crear una cita nueva en estado pendiente. | JSON con `licenseUuid`, `startAt` (con zona horaria), `durationMinutes`, datos del paciente y opcionales (`serviceType`, `professionalId`, `notes`). | Cita creada con `appointmentToken` para seguimiento. |
+| GET / POST | `/public/appointments_public_get.php` | Consultar una cita por token público. | `appointmentToken` por query o body. | Detalle público de la cita con documento y teléfono enmascarados. |
 
-**Query params**
-- `appointmentToken` (string, requerido)
+### Administrativos
 
-## Endpoints admin
+> Requieren header `Authorization: Bearer <BOOKING_ADMIN_TOKEN>`.
 
-Todos requieren header `Authorization: Bearer <BOOKING_ADMIN_TOKEN>`.
+| Método | Endpoint | Objetivo funcional | Entrada principal | Resultado esperado |
+|---|---|---|---|---|
+| GET | `/admin/appointments_list.php` | Listar citas para operación diaria. | Filtros opcionales: `date`, `status`, `professionalId`, `customerDocument`. | Colección de citas con datos administrativos. |
+| GET | `/admin/appointments_get.php` | Ver detalle completo de una cita. | Query: `appointmentId`. | Registro único con información de cliente y agenda. |
+| PATCH / PUT | `/admin/appointments_update.php` | Actualizar datos operativos de una cita. | JSON con `appointmentId` y campos editables (no permite `status`). | Cita actualizada. |
+| POST | `/admin/appointments_confirm.php` | Confirmar una cita pendiente. | JSON: `appointmentId`. | Cambio de estado aplicado (si transición es válida). |
+| POST | `/admin/appointments_cancel.php` | Cancelar una cita en flujo operativo. | JSON: `appointmentId`. | Cambio de estado aplicado (si transición es válida). |
 
-- `GET /admin/appointments_list.php`
-- `GET /admin/appointments_get.php`
-- `PATCH /admin/appointments_update.php` (también acepta `PUT` por compatibilidad)
-- `POST /admin/appointments_confirm.php`
-- `POST /admin/appointments_cancel.php`
+## Reglas funcionales clave
+
+### Disponibilidad
+
+- Solo permite fechas actuales o futuras.
+- Duraciones permitidas: 15, 30, 45, 60, 90 y 120 minutos.
+- Ventanas de agenda por día:
+  - Lunes a viernes: 09:00 a 17:00.
+  - Sábado: 09:00 a 13:00.
+  - Domingo: sin disponibilidad.
+
+### Creación de citas
+
+- `licenseUuid` debe existir y estar habilitada para reservas.
+- `startAt` debe incluir zona horaria y no puede estar en el pasado.
+- Aplica validaciones de calidad de datos para documento, nombre, teléfono y correo.
+- Evita colisiones de horario en estados activos (`pending`, `confirmed`).
+- Si se detecta un intento duplicado con mismo horario y documento, reutiliza la cita existente.
+
+### Consulta pública por token
+
+- El token representa la autorización de lectura pública de la cita.
+- La respuesta pública minimiza exposición de PII usando enmascaramiento de documento y teléfono.
+
+### Operación administrativa
+
+- El listado soporta filtros de uso real de call center y backoffice.
+- La edición administrativa bloquea cambios directos de estado vía endpoint de update.
+- Las transiciones de estado se hacen en endpoints dedicados para asegurar reglas de flujo.
 
 ## Contrato de respuesta
 
@@ -76,30 +101,15 @@ Todos requieren header `Authorization: Bearer <BOOKING_ADMIN_TOKEN>`.
 }
 ```
 
-## Configuración por entorno
+## Configuración funcional de operación
 
-Variables principales:
+Variables de entorno relevantes:
 
-- `BOOKING_TOKEN_SECRET`
-- `BOOKING_TOKEN_KEY_ID`
-- `BOOKING_ADMIN_TOKEN`
-- `BOOKING_CORS_ALLOWED_ORIGINS`
-- `BOOKING_RATE_LIMIT_MAX_ATTEMPTS`
-- `BOOKING_RATE_LIMIT_WINDOW_SECONDS`
-- `BOOKING_RATE_LIMIT_BACKEND`
-- `BOOKING_STRICT_DEPLOY`
-- `BOOKING_LOG_PATH`
-- `BOOKING_TRUSTED_PROXIES` (lista separada por comas; solo estos proxies pueden aportar `X-Forwarded-For`)
-
-## Pruebas del core
-
-Suites disponibles:
-
-```bash
-php scripts/test_business_functional.php
-php scripts/test_full_regression.php
-```
-
-Checklist completo de pruebas E2E/negativas/regresión:
-
-- `TESTING_CHECKLIST.md`
+- `BOOKING_ADMIN_TOKEN`: token de acceso para endpoints administrativos.
+- `BOOKING_TOKEN_SECRET`: secreto para emisión/validación de token público de citas.
+- `BOOKING_TOKEN_KEY_ID`: identificador de clave para trazabilidad del token.
+- `BOOKING_CORS_ALLOWED_ORIGINS`: orígenes autorizados para consumo web.
+- `BOOKING_RATE_LIMIT_BACKEND`: backend de rate limiting (`database` o `file`).
+- `BOOKING_RATE_LIMIT_MAX_ATTEMPTS`: intentos máximos por ventana.
+- `BOOKING_RATE_LIMIT_WINDOW_SECONDS`: tamaño de la ventana de control.
+- `BOOKING_TRUSTED_PROXIES`: proxies confiables para resolución de IP real.
