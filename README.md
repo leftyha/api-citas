@@ -121,3 +121,19 @@ permitiendo correlación con logs sin exponer detalles sensibles.
 ## Nota
 
 Esta base crea el esqueleto y contratos principales para evolucionar la implementación real contra SQL Server/Azure SQL sin exponer identificadores internos.
+
+## Verificación rápida del Segmento 1
+
+Se agregó un verificador ejecutable para comprobar automáticamente los criterios mínimos del Segmento 1 (core HTTP + seguridad base):
+
+```bash
+php scripts/verify_segment1.php
+```
+
+El script valida presencia de:
+
+- `Request::method/json/header/ip/requestId`.
+- CORS configurable con preflight `OPTIONS` y `204`.
+- Rate limit por endpoint.
+- `requestId` en errores no controlados.
+- Autenticación admin en endpoints administrativos.
