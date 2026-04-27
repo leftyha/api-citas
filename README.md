@@ -30,11 +30,12 @@ Crea una cita pública.
 - `professionalId`
 - `startAt`
 - `durationMinutes`
-- `customer`:
-  - `name`
-  - `document`
-  - `phone`
-  - `email`
+- `customerName`
+- `customerDocument`
+- `customerPhone`
+- `customerEmail`
+
+> Compatibilidad: también se acepta `customer` anidado con `name/document/phone/email`, y la API lo normaliza internamente.
 
 ### `GET /public/appointments_public_get.php`
 Consulta una cita por token público.
@@ -48,7 +49,7 @@ Todos requieren header `Authorization: Bearer <BOOKING_ADMIN_TOKEN>`.
 
 - `GET /admin/appointments_list.php`
 - `GET /admin/appointments_get.php`
-- `PUT /admin/appointments_update.php`
+- `PATCH /admin/appointments_update.php` (también acepta `PUT` por compatibilidad)
 - `POST /admin/appointments_confirm.php`
 - `POST /admin/appointments_cancel.php`
 
@@ -88,6 +89,7 @@ Variables principales:
 - `BOOKING_RATE_LIMIT_BACKEND`
 - `BOOKING_STRICT_DEPLOY`
 - `BOOKING_LOG_PATH`
+- `BOOKING_TRUSTED_PROXIES` (lista separada por comas; solo estos proxies pueden aportar `X-Forwarded-For`)
 
 ## Pruebas del core
 

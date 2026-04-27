@@ -15,7 +15,7 @@ final class DatabaseClient
     public function query(string $sql, array $params = []): array
     {
         if (!function_exists('ejecutarQueryAzureSQLServerV2')) {
-            return [];
+            throw new \RuntimeException('Missing dependency: ejecutarQueryAzureSQLServerV2 is not available.');
         }
 
         try {

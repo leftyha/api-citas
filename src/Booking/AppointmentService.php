@@ -25,6 +25,7 @@ final class AppointmentService
 
     public function create(array $input, int $tokenTtl): array
     {
+        $input = $this->normalizeCreateInput($input);
         $this->validator->validateCreateInput($input);
         $license = $this->licenseRepository->findInternalByUuidOrFail((string) $input['licenseUuid']);
 
@@ -134,7 +135,11 @@ final class AppointmentService
             throw new ApiException('appointmentId inválido.', 'VALIDATION_ERROR', 400, ['field' => 'appointmentId']);
         }
 
-        $normalizedStatus = StatusMapper::normalizeInternal($status);
+        try {
+            $normalizedStatus = StatusMapper::normalizeInternal($status);
+        } catch (\InvalidArgumentException) {
+            throw new ApiException('status inválido.', 'VALIDATION_ERROR', 400, ['field' => 'status']);
+        }
 
         $this->db->beginTransaction();
         try {
@@ -146,6 +151,20 @@ final class AppointmentService
         }
 
         return $transitioned;
+    }
+
+
+    private function normalizeCreateInput(array $input): array
+    {
+        if (isset($input['customer']) && is_array($input['customer'])) {
+            $customer = $input['customer'];
+            $input['customerName'] = $input['customerName'] ?? ($customer['name'] ?? null);
+            $input['customerDocument'] = $input['customerDocument'] ?? ($customer['document'] ?? null);
+            $input['customerPhone'] = $input['customerPhone'] ?? ($customer['phone'] ?? null);
+            $input['customerEmail'] = $input['customerEmail'] ?? ($customer['email'] ?? null);
+        }
+
+        return $input;
     }
 
     private function maskPhone(string $phone): string

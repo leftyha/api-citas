@@ -11,7 +11,7 @@ $container = require __DIR__ . '/../bootstrap.php';
 Cors::apply($container['config']['app']['cors'] ?? []);
 
 try {
-    Request::assertMethod('PATCH');
+    Request::assertMethod('PATCH', 'PUT');
     $container['rateLimiter']->assertAllowed('admin:appointments_update:' . Request::ip());
     $container['adminAuth']->assert((string) Request::header('Authorization', ''));
     $body = Request::json();

@@ -88,6 +88,14 @@ $run('Mapper', 'normaliza estados públicos e internos', static function (): voi
     if (StatusMapper::canTransition('cancelled', 'confirmed')) {
         throw new RuntimeException('Transición cancelled -> confirmed debería ser inválida.');
     }
+
+    try {
+        StatusMapper::normalizeInternal('desconocido');
+    } catch (InvalidArgumentException) {
+        return;
+    }
+
+    throw new RuntimeException('normalizeInternal debe fallar con estados desconocidos.');
 });
 
 $run('Mapper', 'mapea licencia pública y booleans heterogéneos', static function (): void {
@@ -171,9 +179,11 @@ $run('Security', 'enmascara documento y aplica rate limit por archivo', static f
 
 $run('HTTP', 'resuelve headers, IP y método permitido', static function () use ($assertApiCode): void {
     $originalServer = $_SERVER;
+    $originalTrusted = getenv('BOOKING_TRUSTED_PROXIES');
     $_SERVER['REQUEST_METHOD'] = 'post';
     $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer abc';
     $_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.55, 10.0.0.1';
+    $_SERVER['REMOTE_ADDR'] = '198.51.100.20';
 
     if (Request::method() !== 'POST') {
         throw new RuntimeException('Request::method no normaliza a mayúsculas.');
@@ -183,8 +193,14 @@ $run('HTTP', 'resuelve headers, IP y método permitido', static function () use 
         throw new RuntimeException('Request::header Authorization no coincide.');
     }
 
+    putenv('BOOKING_TRUSTED_PROXIES');
+    if (Request::ip() !== '198.51.100.20') {
+        throw new RuntimeException('Request::ip no debe confiar en X-Forwarded-For sin proxy confiable.');
+    }
+
+    putenv('BOOKING_TRUSTED_PROXIES=198.51.100.20');
     if (Request::ip() !== '203.0.113.55') {
-        throw new RuntimeException('Request::ip no prioriza X-Forwarded-For.');
+        throw new RuntimeException('Request::ip no usa X-Forwarded-For cuando el proxy es confiable.');
     }
 
     Request::assertMethod('POST');
@@ -193,6 +209,11 @@ $run('HTTP', 'resuelve headers, IP y método permitido', static function () use 
         Request::assertMethod('GET');
     }, 'METHOD_NOT_ALLOWED');
 
+    if ($originalTrusted === false) {
+        putenv('BOOKING_TRUSTED_PROXIES');
+    } else {
+        putenv('BOOKING_TRUSTED_PROXIES=' . $originalTrusted);
+    }
     $_SERVER = $originalServer;
 });
 

@@ -12,7 +12,7 @@ final class StatusMapper
             'p', 'pending' => 'pending',
             'c', 'confirmed' => 'confirmed',
             'x', 'cancelled', 'canceled' => 'cancelled',
-            default => 'pending',
+            default => 'unknown',
         };
     }
 
@@ -22,7 +22,7 @@ final class StatusMapper
             'p', 'pending' => 'pending',
             'c', 'confirmed' => 'confirmed',
             'x', 'cancelled', 'canceled' => 'cancelled',
-            default => 'pending',
+            default => throw new \InvalidArgumentException('Estado inválido: ' . $status),
         };
     }
 

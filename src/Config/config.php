@@ -38,6 +38,11 @@ return [
             'max_attempts' => (int) (getenv('BOOKING_RATE_LIMIT_MAX_ATTEMPTS') ?: 60),
             'window_seconds' => (int) (getenv('BOOKING_RATE_LIMIT_WINDOW_SECONDS') ?: 60),
         ],
+        'trusted_proxies' => array_values(
+            array_filter(
+                array_map('trim', explode(',', (string) (getenv('BOOKING_TRUSTED_PROXIES') ?: '')))
+            )
+        ),
     ],
     'observability' => [
         'log_path' => getenv('BOOKING_LOG_PATH') ?: __DIR__ . '/../../logs/booking-api.log',
