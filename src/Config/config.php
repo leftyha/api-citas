@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 return [
     'app' => [
-        'timezone' => 'America/Caracas',
-        'base_path' => '/ws/dashboard-usd/api',
+        'timezone' => getenv('BOOKING_TIMEZONE') ?: 'UTC',
+        'base_path' => getenv('BOOKING_BASE_PATH') ?: '',
         'strict_deploy' => strtolower((string) (getenv('BOOKING_STRICT_DEPLOY') ?: ((getenv('BOOKING_ENV') ?: 'dev') === 'production' ? 'true' : 'false'))) === 'true',
         'allowed_channels' => ['web', 'call-center', 'store', 'admin', 'internal'],
         'cors' => [
@@ -20,15 +20,15 @@ return [
         'driver' => 'sqlsrv',
     ],
     'booking' => [
-        'default_duration_minutes' => 30,
+        'default_duration_minutes' => (int) (getenv('BOOKING_DEFAULT_DURATION_MINUTES') ?: 30),
         'active_statuses' => ['pending', 'confirmed'],
-        'token_ttl_seconds' => 60 * 60 * 24 * 90,
+        'token_ttl_seconds' => (int) (getenv('BOOKING_TOKEN_TTL_SECONDS') ?: 60 * 60 * 24 * 90),
     ],
     'security' => [
         'appointment_token' => [
             'secret' => getenv('BOOKING_TOKEN_SECRET') ?: 'change-me-in-production',
             'key_id' => getenv('BOOKING_TOKEN_KEY_ID') ?: 'booking-token-2026-01',
-            'prefix' => 'apt_',
+            'prefix' => getenv('BOOKING_TOKEN_PREFIX') ?: 'apt_',
         ],
         'admin' => [
             'token' => getenv('BOOKING_ADMIN_TOKEN') ?: 'change-me-in-production',
