@@ -11,6 +11,10 @@ $container = require __DIR__ . '/../bootstrap.php';
 Cors::apply($container['config']['app']['cors'] ?? []);
 
 try {
+    if (Request::method() !== 'GET') {
+        throw new ApiException('Método no permitido.', 'METHOD_NOT_ALLOWED', 405);
+    }
+
     $container['rateLimiter']->assertAllowed('public:availability:' . Request::ip());
     $licenseUuid = (string) Request::query('licenseUuid', '');
     $date = (string) Request::query('date', '');

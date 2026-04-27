@@ -18,6 +18,7 @@ final class AvailabilityService
 
     public function getSlots(string $licenseUuid, string $date, int $durationMinutes = 30): array
     {
+        $this->validator->validateAvailabilityInput($licenseUuid, $date, $durationMinutes);
         $this->licenseRepository->findInternalByUuidOrFail($licenseUuid);
 
         return [
