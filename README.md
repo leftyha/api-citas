@@ -82,6 +82,9 @@ Si no se definen, `src/Config/config.php` usa valores fallback de desarrollo (`c
 - `BOOKING_CORS_ALLOWED_ORIGINS` (csv, ejemplo: `https://web.tu-dominio.com,https://qa.tu-dominio.com`)
 - `BOOKING_RATE_LIMIT_MAX_ATTEMPTS`
 - `BOOKING_RATE_LIMIT_WINDOW_SECONDS`
+- `BOOKING_RATE_LIMIT_BACKEND` (`database` recomendado para multi-instancia)
+- `BOOKING_STRICT_DEPLOY` (`true` por defecto, bloquea secrets default)
+- `BOOKING_LOG_PATH`
 
 ## Segmento 1 aplicado (core HTTP + seguridad base)
 
@@ -220,3 +223,16 @@ php scripts/verify_segment6_7.php
 ```bash
 php scripts/verify_segment8.php
 ```
+
+## Hardening de producción (segmentos 6-7 checklist operativo)
+
+- Endpoints críticos validan método HTTP explícito con respuesta `405 METHOD_NOT_ALLOWED` cuando no coincide contrato.
+- El arranque falla en modo estricto (`BOOKING_STRICT_DEPLOY=true`) si secretos críticos usan defaults inseguros.
+- Rate limit soporta backend distribuido por SQL (`BOOKING_RATE_LIMIT_BACKEND=database`) para despliegues multi-instancia.
+- Se agrega logging estructurado JSON con `requestId` para eventos de error no controlado.
+- Se incorporan artefactos operativos:
+  - `docs/qa/min_dataset.sql` (dataset mínimo QA).
+  - `docs/qa/e2e_evidence.md` (plantilla de evidencia E2E).
+  - `docs/operations/logging_alerts.md` (estándar de logs + alertas).
+  - `docs/operations/RUNBOOK.md` (runbook corto de incidentes).
+  - `docs/operations/production_on_checklist.md` (criterios de producción ON).

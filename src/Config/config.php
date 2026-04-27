@@ -6,6 +6,7 @@ return [
     'app' => [
         'timezone' => 'America/Caracas',
         'base_path' => '/ws/dashboard-usd/api',
+        'strict_deploy' => strtolower((string) (getenv('BOOKING_STRICT_DEPLOY') ?: ((getenv('BOOKING_ENV') ?: 'dev') === 'production' ? 'true' : 'false'))) === 'true',
         'allowed_channels' => ['web', 'call-center', 'store', 'admin', 'internal'],
         'cors' => [
             'allowed_origins' => array_values(
@@ -33,8 +34,12 @@ return [
             'token' => getenv('BOOKING_ADMIN_TOKEN') ?: 'change-me-in-production',
         ],
         'rate_limit' => [
+            'backend' => getenv('BOOKING_RATE_LIMIT_BACKEND') ?: 'database',
             'max_attempts' => (int) (getenv('BOOKING_RATE_LIMIT_MAX_ATTEMPTS') ?: 60),
             'window_seconds' => (int) (getenv('BOOKING_RATE_LIMIT_WINDOW_SECONDS') ?: 60),
         ],
+    ],
+    'observability' => [
+        'log_path' => getenv('BOOKING_LOG_PATH') ?: __DIR__ . '/../../logs/booking-api.log',
     ],
 ];

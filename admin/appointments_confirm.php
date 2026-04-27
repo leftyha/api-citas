@@ -11,6 +11,7 @@ $container = require __DIR__ . '/../bootstrap.php';
 Cors::apply($container['config']['app']['cors'] ?? []);
 
 try {
+    Request::assertMethod('POST');
     $container['rateLimiter']->assertAllowed('admin:appointments_confirm:' . Request::ip());
     $container['adminAuth']->assert((string) Request::header('Authorization', ''));
     $body = Request::json();
@@ -19,6 +20,12 @@ try {
     JsonResponse::success($data, 'Cita confirmada.');
 } catch (ApiException $e) {
     JsonResponse::error($e->getErrorCode(), $e->getMessage(), $e->getStatusCode(), $e->getErrors());
-} catch (Throwable) {
+} catch (Throwable $e) {
+    $container['logger']->error('admin_appointments_confirm_unhandled', [
+        'requestId' => Request::requestId(),
+        'method' => Request::method(),
+        'path' => '/admin/appointments_confirm.php',
+        'error' => $e->getMessage(),
+    ]);
     JsonResponse::error('INTERNAL_ERROR', 'Error interno.', 500, ['requestId' => Request::requestId()]);
 }
