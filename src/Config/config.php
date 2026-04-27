@@ -17,7 +17,14 @@ return [
         ],
     ],
     'database' => [
-        'driver' => 'sqlsrv',
+        'driver' => getenv('BOOKING_DB_DRIVER') ?: 'sqlsrv',
+        'host' => getenv('BOOKING_DB_HOST') ?: '',
+        'port' => (int) (getenv('BOOKING_DB_PORT') ?: 1433),
+        'name' => getenv('BOOKING_DB_NAME') ?: '',
+        'user' => getenv('BOOKING_DB_USER') ?: '',
+        'password' => getenv('BOOKING_DB_PASSWORD') ?: '',
+        'encrypt' => strtolower((string) (getenv('BOOKING_DB_ENCRYPT') ?: 'true')) === 'true',
+        'trust_server_certificate' => strtolower((string) (getenv('BOOKING_DB_TRUST_SERVER_CERTIFICATE') ?: 'false')) === 'true',
     ],
     'booking' => [
         'default_duration_minutes' => (int) (getenv('BOOKING_DEFAULT_DURATION_MINUTES') ?: 30),

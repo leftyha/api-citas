@@ -105,6 +105,14 @@ La API resuelve el ciclo completo de una cita:
 
 Variables principales:
 
+- `BOOKING_DB_DRIVER`
+- `BOOKING_DB_HOST`
+- `BOOKING_DB_PORT`
+- `BOOKING_DB_NAME`
+- `BOOKING_DB_USER`
+- `BOOKING_DB_PASSWORD`
+- `BOOKING_DB_ENCRYPT`
+- `BOOKING_DB_TRUST_SERVER_CERTIFICATE`
 - `BOOKING_ENV`
 - `BOOKING_STRICT_DEPLOY`
 - `BOOKING_TIMEZONE`
@@ -123,6 +131,8 @@ Variables principales:
 - `BOOKING_TRUSTED_PROXIES` (lista separada por comas; solo estos proxies pueden aportar `X-Forwarded-For`)
 
 > Recomendación: usa `.env` solo en entornos locales y nunca lo versionas. Toma `.env.example` como plantilla.
+>
+> `bootstrap.php` carga automáticamente `.env` (si existe) y **no sobreescribe** variables ya definidas por el entorno del servidor.
 
 ## Pruebas del core
 

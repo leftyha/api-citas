@@ -24,6 +24,20 @@ final class DeploymentGuard
                 throw new \RuntimeException(sprintf('Valor inseguro para configuración crítica: %s', $path));
             }
         }
+
+        $required = [
+            'database.host',
+            'database.name',
+            'database.user',
+            'database.password',
+        ];
+
+        foreach ($required as $path) {
+            $value = self::read($config, $path);
+            if (!is_string($value) || trim($value) === '') {
+                throw new \RuntimeException(sprintf('Falta configuración obligatoria: %s', $path));
+            }
+        }
     }
 
     private static function read(array $config, string $path): mixed
