@@ -163,5 +163,5 @@ El script verifica:
 
 - resolución pública de licencia con contrato mínimo;
 - validaciones de UUID/licencia inexistente;
-- disponibilidad sin datos sensibles;
+- disponibilidad sin datos sensibles (ni en `slots` ni en la raíz del payload);
 - validaciones de fecha y duración.
