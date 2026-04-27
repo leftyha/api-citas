@@ -79,6 +79,44 @@ Si no se definen, `src/Config/config.php` usa valores fallback de desarrollo (`c
 - `BOOKING_TOKEN_SECRET`
 - `BOOKING_TOKEN_KEY_ID`
 - `BOOKING_ADMIN_TOKEN`
+- `BOOKING_CORS_ALLOWED_ORIGINS` (csv, ejemplo: `https://web.tu-dominio.com,https://qa.tu-dominio.com`)
+- `BOOKING_RATE_LIMIT_MAX_ATTEMPTS`
+- `BOOKING_RATE_LIMIT_WINDOW_SECONDS`
+
+## Segmento 1 aplicado (core HTTP + seguridad base)
+
+### 1) Request normalizado
+
+`Request` ahora incluye soporte base para:
+
+- método HTTP (`Request::method`);
+- lectura robusta de headers (`Authorization`, `Content-Type`, y headers estándar);
+- lectura de IP (`Request::ip`);
+- `requestId` para trazabilidad en errores no controlados (`Request::requestId`).
+
+Además, `Request::json()` evita parsear body en `GET` y mantiene validación de `application/json` para requests con body.
+
+### 2) CORS configurable por entorno
+
+`Cors::apply(...)` recibe configuración y permite:
+
+- usar `*` por defecto en desarrollo;
+- restringir a una lista de orígenes (`BOOKING_CORS_ALLOWED_ORIGINS`) para QA/producción;
+- mantener `OPTIONS` preflight con respuesta 204.
+
+### 3) Error no controlado homogéneo y trazable
+
+Todos los endpoints (`public/` y `admin/`) responden error interno homogéneo y agregan:
+
+- `errors.requestId`
+
+permitiendo correlación con logs sin exponer detalles sensibles.
+
+### 4) Seguridad base activa en endpoints
+
+- Endpoints admin siguen exigiendo bearer token vía `AdminAuth`.
+- Se activó rate limit básico por IP + endpoint en todos los entrypoints usando `RateLimiter::assertAllowed(...)`.
+- `Masking` queda disponible para mapeos de salida sensibles (segmentos posteriores de datos públicos/admin completos).
 
 ## Nota
 
