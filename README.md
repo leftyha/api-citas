@@ -101,7 +101,37 @@ La API resuelve el ciclo completo de una cita:
 }
 ```
 
-## Configuración funcional de operación
+## Configuración por entorno
+
+Variables principales:
+
+- `BOOKING_ENV`
+- `BOOKING_STRICT_DEPLOY`
+- `BOOKING_TIMEZONE`
+- `BOOKING_BASE_PATH`
+- `BOOKING_TOKEN_SECRET`
+- `BOOKING_TOKEN_KEY_ID`
+- `BOOKING_TOKEN_PREFIX`
+- `BOOKING_ADMIN_TOKEN`
+- `BOOKING_DEFAULT_DURATION_MINUTES`
+- `BOOKING_TOKEN_TTL_SECONDS`
+- `BOOKING_CORS_ALLOWED_ORIGINS`
+- `BOOKING_RATE_LIMIT_MAX_ATTEMPTS`
+- `BOOKING_RATE_LIMIT_WINDOW_SECONDS`
+- `BOOKING_RATE_LIMIT_BACKEND`
+- `BOOKING_LOG_PATH`
+- `BOOKING_TRUSTED_PROXIES` (lista separada por comas; solo estos proxies pueden aportar `X-Forwarded-For`)
+
+> Recomendación: usa `.env` solo en entornos locales y nunca lo versionas. Toma `.env.example` como plantilla.
+
+## Pruebas del core
+
+Suites disponibles:
+
+```bash
+php scripts/test_business_functional.php
+php scripts/test_full_regression.php
+```
 
 Variables de entorno relevantes:
 
