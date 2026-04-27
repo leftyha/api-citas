@@ -11,11 +11,7 @@ API REST en PHP para gestión de citas médicas con endpoints públicos y admini
 
 ## Endpoints públicos
 
-### `GET /public/licenses_resolve.php`
-Resuelve una licencia pública por `licenseUuid`.
-
-**Query params**
-- `licenseUuid` (string, requerido)
+> Nota: la resolución interna `license_uuid -> license_id` ocurre dentro de la API en cada flujo público que recibe `licenseUuid`. No existe endpoint público dedicado para ese proceso interno.
 
 ### `GET /public/availability.php`
 Lista slots disponibles para una licencia en una fecha.
