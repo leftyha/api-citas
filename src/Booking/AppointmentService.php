@@ -7,7 +7,9 @@ namespace Booking\Booking;
 use Booking\Http\ApiException;
 use Booking\Repository\AppointmentRepository;
 use Booking\Repository\LicenseRepository;
+use Booking\Security\Masking;
 use Booking\Security\AppointmentTokenService;
+use Booking\Database\DatabaseClient;
 
 final class AppointmentService
 {
@@ -15,7 +17,8 @@ final class AppointmentService
         private readonly AppointmentRepository $appointmentRepository,
         private readonly LicenseRepository $licenseRepository,
         private readonly AppointmentTokenService $tokenService,
-        private readonly AppointmentValidator $validator
+        private readonly AppointmentValidator $validator,
+        private readonly DatabaseClient $db
     ) {
     }
 
@@ -24,13 +27,37 @@ final class AppointmentService
         $this->validator->validateCreateInput($input);
         $license = $this->licenseRepository->findInternalByUuidOrFail((string) $input['licenseUuid']);
 
-        $appointmentId = $this->appointmentRepository->create($license['licenseId'], $input);
+        $durationMinutes = isset($input['durationMinutes'])
+            ? (int) $input['durationMinutes']
+            : 30;
+        $startAt = $this->validator->parseStartAt((string) $input['startAt']);
+        $endAt = $startAt->modify(sprintf('+%d minutes', $durationMinutes));
+
+        $appointmentInput = $input;
+        $appointmentInput['durationMinutes'] = $durationMinutes;
+        $appointmentInput['startAt'] = $startAt->format('c');
+        $appointmentInput['endAt'] = $endAt->format('c');
+
+        $this->db->beginTransaction();
+        try {
+            $appointmentId = $this->appointmentRepository->create((int) $license['licenseId'], $appointmentInput);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollback();
+            throw $e;
+        }
+
         $token = $this->tokenService->issue($appointmentId, (string) $input['licenseUuid'], $tokenTtl);
 
         return [
-            'appointmentToken' => $token,
-            'status' => 'pending',
-            'startAt' => $input['startAt'],
+            'appointment' => [
+                'appointmentToken' => $token,
+                'startAt' => $startAt->format('c'),
+                'endAt' => $endAt->format('c'),
+                'durationMinutes' => $durationMinutes,
+                'serviceType' => ($input['serviceType'] ?? null) ?: null,
+                'status' => 'pending',
+            ],
         ];
     }
 
@@ -43,8 +70,20 @@ final class AppointmentService
             throw new ApiException('No se encontró una cita válida.', 'APPOINTMENT_NOT_FOUND', 404);
         }
 
-        unset($appointment['licenseUuid']);
-        return $appointment;
+        return [
+            'appointment' => [
+                'appointmentToken' => $token,
+                'startAt' => $appointment['startAt'],
+                'endAt' => $appointment['endAt'],
+                'durationMinutes' => (int) ($appointment['durationMinutes'] ?? 0),
+                'serviceType' => $appointment['serviceType'] ?? null,
+                'status' => (string) $appointment['status'],
+                'customer' => [
+                    'documentMasked' => Masking::document((string) ($appointment['customerDocument'] ?? '')),
+                    'phoneMasked' => $this->maskPhone((string) ($appointment['customerPhone'] ?? '')),
+                ],
+            ],
+        ];
     }
 
     public function listAdmin(array $filters): array
@@ -70,5 +109,19 @@ final class AppointmentService
     public function transitionAdmin(int $appointmentId, string $status): array
     {
         return $this->appointmentRepository->transitionStatus($appointmentId, $status);
+    }
+
+    private function maskPhone(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+        if ($digits === '') {
+            return '';
+        }
+
+        if (strlen($digits) <= 3) {
+            return str_repeat('*', strlen($digits));
+        }
+
+        return str_repeat('*', strlen($digits) - 3) . substr($digits, -3);
     }
 }

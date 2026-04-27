@@ -20,7 +20,7 @@ try {
     }
 
     $data = $container['appointmentService']->getPublicByToken((string) $token);
-    JsonResponse::success($data, 'Cita obtenida correctamente.');
+    JsonResponse::success($data, 'Cita encontrada.');
 } catch (ApiException $e) {
     JsonResponse::error($e->getErrorCode(), $e->getMessage(), $e->getStatusCode(), $e->getErrors());
 } catch (Throwable) {
