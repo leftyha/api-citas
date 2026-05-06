@@ -7,6 +7,35 @@ function cfg(string $k, $d = null)
     return $v === false ? $d : $v;
 }
 
+
+function legacy_bootstrap(): void
+{
+    static $loaded = false;
+    if ($loaded) {
+        return;
+    }
+
+    $loaded = true;
+    $legacyFile = (string) cfg("BOOKING_LEGACY_BOOTSTRAP", "");
+    if ($legacyFile !== '' && is_file($legacyFile)) {
+        require_once $legacyFile;
+    }
+}
+
+function legacy_cfg(string $envKey, string $constKey, $default = null)
+{
+    $envValue = cfg($envKey, null);
+    if ($envValue !== null && $envValue !== '') {
+        return $envValue;
+    }
+
+    if (defined($constKey)) {
+        return constant($constKey);
+    }
+
+    return $default;
+}
+
 function db(): PDO
 {
     static $pdo = null;
@@ -14,16 +43,22 @@ function db(): PDO
         return $pdo;
     }
 
+    legacy_bootstrap();
+
     $driver = cfg("BOOKING_DB_DRIVER", "sqlsrv");
-    $host = cfg("BOOKING_DB_HOST", "tcp:y8xavxasp6.database.windows.net");
-    $port = cfg("BOOKING_DB_PORT", "1433");
-    $name = cfg("BOOKING_DB_NAME", "bdoptol");
-    $user = cfg("BOOKING_DB_USER", "sa");
-    $pass = cfg("BOOKING_DB_PASSWORD", "");
+
+    // Compatibilidad con configuración legacy del script Azure SQL Server V2 ya instanciado.
+    $host = (string) legacy_cfg("BOOKING_DB_HOST", "DB_SERVER_NAME", "tcp:y8xavxasp6.database.windows.net");
+    $port = (string) cfg("BOOKING_DB_PORT", "1433");
+    $name = (string) legacy_cfg("BOOKING_DB_NAME", "DB_DATABASE_NAME", "bdoptol");
+    $user = (string) legacy_cfg("BOOKING_DB_USER", "DB_USERNAME", "sa");
+    $pass = (string) legacy_cfg("BOOKING_DB_PASSWORD", "DB_PASSWORD", "");
+
+    $server = strpos($host, ",") !== false ? $host : ($host . "," . $port);
 
     $dsn = $driver === "mysql"
         ? "mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4"
-        : "sqlsrv:Server=$host,$port;Database=$name;TrustServerCertificate=1;Encrypt=0;LoginTimeout=30";
+        : "sqlsrv:Server=$server;Database=$name;TrustServerCertificate=1;Encrypt=0;LoginTimeout=30;CharacterSet=UTF-8";
 
     $pdo = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
