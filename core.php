@@ -13,15 +13,15 @@ function db(): PDO
         return $pdo;
     }
     $driver = cfg("BOOKING_DB_DRIVER", "sqlsrv");
-    $host = cfg("BOOKING_DB_HOST", "127.0.0.1");
+    $host = cfg("BOOKING_DB_HOST", "tcp:y8xavxasp6.database.windows.net");
     $port = cfg("BOOKING_DB_PORT", "1433");
-    $name = cfg("BOOKING_DB_NAME", "booking");
+    $name = cfg("BOOKING_DB_NAME", "bdoptol");
     $user = cfg("BOOKING_DB_USER", "sa");
     $pass = cfg("BOOKING_DB_PASSWORD", "");
     $dsn =
         $driver === "mysql"
             ? "mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4"
-            : "sqlsrv:Server=$host,$port;Database=$name";
+            : "sqlsrv:Server=$host,$port;Database=$name;TrustServerCertificate=1;Encrypt=0;LoginTimeout=30";
     $pdo = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
