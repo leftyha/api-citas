@@ -2,13 +2,28 @@
 declare(strict_types=1);
 
 function cfg(string $k, $d=null){$v=getenv($k);return $v===false?$d:$v;}
+
+if(!defined('DB_SERVER_NAME')) define('DB_SERVER_NAME',(string)cfg('DB_SERVER_NAME',cfg('BOOKING_DB_HOST','127.0.0.1').','.cfg('BOOKING_DB_PORT','1433')));
+if(!defined('DB_DATABASE_NAME')) define('DB_DATABASE_NAME',(string)cfg('DB_DATABASE_NAME',cfg('BOOKING_DB_NAME','booking')));
+if(!defined('DB_USERNAME')) define('DB_USERNAME',(string)cfg('DB_USERNAME',cfg('BOOKING_DB_USER','sa')));
+if(!defined('DB_PASSWORD')) define('DB_PASSWORD',(string)cfg('DB_PASSWORD',cfg('BOOKING_DB_PASSWORD','')));
+
 function db(): PDO {
   static $pdo=null; if($pdo instanceof PDO) return $pdo;
   $driver=cfg('BOOKING_DB_DRIVER','sqlsrv');
-  $host=cfg('BOOKING_DB_HOST','127.0.0.1');$port=cfg('BOOKING_DB_PORT','1433');$name=cfg('BOOKING_DB_NAME','booking');
-  $user=cfg('BOOKING_DB_USER','sa');$pass=cfg('BOOKING_DB_PASSWORD','');
-  $dsn=$driver==='mysql'?"mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4":"sqlsrv:Server=$host,$port;Database=$name";
-  $pdo=new PDO($dsn,$user,$pass,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
+
+  if($driver==='mysql'){
+    $host=cfg('BOOKING_DB_HOST','127.0.0.1');$port=cfg('BOOKING_DB_PORT','3306');$name=cfg('BOOKING_DB_NAME','booking');
+    $dsn="mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4";
+    $pdo=new PDO($dsn,(string)cfg('BOOKING_DB_USER','sa'),(string)cfg('BOOKING_DB_PASSWORD',''),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
+    return $pdo;
+  }
+
+  $server=(string)DB_SERVER_NAME;
+  if(str_starts_with($server,'tcp:')) $server=substr($server,4);
+  $database=(string)DB_DATABASE_NAME;
+  $dsn="sqlsrv:Server={$server};Database={$database};Encrypt=0;TrustServerCertificate=1;LoginTimeout=30";
+  $pdo=new PDO($dsn,(string)DB_USERNAME,(string)DB_PASSWORD,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
   return $pdo;
 }
 function json_in(): array { $raw=file_get_contents('php://input')?:''; if($raw==='') return []; $d=json_decode($raw,true); return is_array($d)?$d:[]; }
