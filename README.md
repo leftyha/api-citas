@@ -1,34 +1,32 @@
 # Booking API (PHP 7.4)
 
-API REST para gestión de disponibilidad y citas médicas, con canales público y administrativo.
+API REST para consultar disponibilidad y gestionar citas médicas.
 
-## Estructura simplificada (9 archivos PHP)
+## Qué resuelve
 
-1. `core.php` (lógica completa: config, conexión DB, seguridad, validaciones, handlers).
-2. `availability.php`
-3. `appointments_create.php`
-4. `appointments_public_get.php`
-5. `admin_appointments_list.php`
-6. `admin_appointments_get.php`
-7. `admin_appointments_update.php`
-8. `admin_appointments_confirm.php`
-9. `admin_appointments_cancel.php`
+- Publica horarios disponibles por licencia profesional.
+- Permite crear citas desde canal público.
+- Entrega un token de consulta para que el paciente vea su cita sin autenticación administrativa.
+- Expone endpoints administrativos para listar, consultar, actualizar y cambiar estado de citas.
 
-## Endpoints
+## Requisitos
 
-### Públicos
-- `GET /availability.php?licenseUuid=...&date=YYYY-MM-DD&durationMinutes=30`
-- `POST /appointments_create.php`
-- `GET|POST /appointments_public_get.php`
+- PHP 7.4+ con PDO habilitado.
+- Base de datos compatible con `sqlsrv` o `mysql`.
+- Tablas de negocio:
+  - `booking_licenses`
+  - `booking_appointments`
 
-### Administrativos (Bearer token)
-- `GET /admin_appointments_list.php`
-- `GET /admin_appointments_get.php?appointmentId=...`
-- `PATCH|PUT|POST /admin_appointments_update.php`
-- `POST /admin_appointments_confirm.php`
-- `POST /admin_appointments_cancel.php`
+## Configuración
 
-## Variables de entorno principales
+1. Copiar variables desde `.env.example`.
+2. Configurar conexión a base de datos.
+3. Definir secretos y token administrativo en producción:
+   - `BOOKING_TOKEN_SECRET`
+   - `BOOKING_ADMIN_TOKEN`
+4. Configurar zona horaria y CORS según entorno.
+
+Variables principales:
 
 - `BOOKING_DB_DRIVER` (`sqlsrv` o `mysql`)
 - `BOOKING_DB_HOST`
@@ -40,14 +38,85 @@ API REST para gestión de disponibilidad y citas médicas, con canales público 
 - `BOOKING_TOKEN_SECRET`
 - `BOOKING_TOKEN_TTL_SECONDS`
 
-## Contrato de respuesta
+## Endpoints
+
+### Públicos
+
+#### `GET /availability.php`
+Consulta slots disponibles.
+
+Parámetros de query:
+- `licenseUuid` (obligatorio)
+- `date` (obligatorio, formato `YYYY-MM-DD`)
+- `durationMinutes` (opcional, entero)
+
+#### `POST /appointments_create.php`
+Crea una cita en estado `pending`.
+
+Campos JSON requeridos:
+- `licenseUuid`
+- `startAt` (ISO-8601)
+- `customerDocument`
+- `customerName`
+- `customerPhone`
+
+Campos opcionales:
+- `durationMinutes`
+- `customerEmail`
+- `serviceType`
+- `professionalId`
+- `notes`
+
+Respuesta relevante:
+- `appointment.appointmentToken` para consulta pública posterior.
+
+#### `GET|POST /appointments_public_get.php`
+Obtiene detalle público de una cita a partir de `appointmentToken`.
+
+### Administrativos (Bearer token)
+
+Requieren header:
+
+```http
+Authorization: Bearer <BOOKING_ADMIN_TOKEN>
+```
+
+#### `GET /admin_appointments_list.php`
+Lista citas con filtros opcionales:
+- `date`
+- `status`
+- `professionalId`
+- `customerDocument`
+
+#### `GET /admin_appointments_get.php`
+Consulta una cita por `appointmentId`.
+
+#### `PATCH|PUT|POST /admin_appointments_update.php`
+Actualiza datos de cita (excepto estado).
+
+#### `POST /admin_appointments_confirm.php`
+Cambia estado a `confirmed`.
+
+#### `POST /admin_appointments_cancel.php`
+Cambia estado a `cancelled`.
+
+## Reglas funcionales importantes
+
+- Solo se permiten reservas en licencias activas (`booking_enabled = true`).
+- Un horario ocupado por cita `pending` o `confirmed` no puede duplicarse para otro documento.
+- Si se reintenta reservar exactamente el mismo horario con el mismo documento, la API reutiliza la cita existente.
+- El token público de cita tiene expiración según `BOOKING_TOKEN_TTL_SECONDS`.
+
+## Formato de respuestas
 
 Éxito:
+
 ```json
 {"ok":true,"message":"...","data":{}}
 ```
 
 Error:
+
 ```json
 {"ok":false,"code":"ERROR_CODE","message":"...","errors":[]}
 ```
