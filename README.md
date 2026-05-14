@@ -46,7 +46,7 @@ Variables principales:
 Consulta slots disponibles.
 
 Parámetros de query:
-- `licenseUuid` (obligatorio)
+- `id_lice_encr` (obligatorio)
 - `date` (obligatorio, formato `YYYY-MM-DD`)
 - `durationMinutes` (opcional, entero)
 
@@ -54,7 +54,7 @@ Parámetros de query:
 Crea una cita en estado `pending`.
 
 Campos JSON requeridos:
-- `licenseUuid`
+- `id_lice_encr`
 - `startAt` (ISO-8601)
 - `customerDocument`
 - `customerName`
@@ -72,6 +72,15 @@ Respuesta relevante:
 
 #### `GET|POST /appointments_public_get.php`
 Obtiene detalle público de una cita a partir de `appointmentToken`.
+
+#### `GET|POST /appointments_list.php`
+Lista citas de una licencia usando `id_lice_encr`.
+
+#### `PATCH|PUT|POST /appointments_update.php`
+Actualiza una cita de la misma licencia (`appointmentId` + `id_lice_encr`).
+
+#### `DELETE|POST /appointments_delete.php`
+Elimina una cita de la misma licencia (`appointmentId` + `id_lice_encr`).
 
 ### Administrativos (Bearer token)
 

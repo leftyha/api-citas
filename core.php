@@ -17,32 +17,24 @@ function ok($data=null,string $msg='OK',int $code=200): void { http_response_cod
 function fail(string $code,string $msg,int $http=400,array $errors=[]): void { http_response_code($http); header('Content-Type: application/json'); echo json_encode(['ok'=>false,'code'=>$code,'message'=>$msg,'errors'=>$errors],JSON_UNESCAPED_UNICODE); exit(); }
 function require_fields(array $input,array $fields): void { foreach($fields as $f){ if(empty($input[$f])) fail('VALIDATION_ERROR',"$f es obligatorio"); } }
 
-function license_or_fail(string $uuid = '', string $idLiceEncr = ''): array {
+function license_or_fail(string $idLiceEncr = ''): array {
+    if ($idLiceEncr === '') fail('VALIDATION_ERROR', 'id_lice_encr es obligatorio');
     $table = (string) cfg('BOOKING_TABLE_LICENSES', 't_licencia');
-    if ($idLiceEncr !== '') {
-        $safe = str_replace("'", "''", $idLiceEncr);
-        $rows = ejecutarQueryAzureSQLServerV2("SELECT TOP 1 id_lice, id_lice_encr, ISNULL(booking_enabled,1) AS booking_enabled FROM {$table} WHERE id_lice_encr = '{$safe}'", true);
-        if (!$rows) fail('LICENSE_NOT_FOUND','Licencia no encontrada',404);
-        $r = (array) $rows[0];
-        if (!(bool)($r['booking_enabled'] ?? 1)) fail('LICENSE_INACTIVE','Licencia inactiva',422);
-        return ['id'=>(int)$r['id_lice'],'uuid'=>(string)($r['id_lice_encr'] ?? $idLiceEncr)];
-    }
-
-    if ($uuid === '') fail('VALIDATION_ERROR', 'licenseUuid o id_lice_encr es obligatorio');
-    $st = db()->prepare("SELECT TOP 1 id_lice AS license_id, id_lice_encr AS license_uuid, ISNULL(booking_enabled,1) AS booking_enabled FROM {$table} WHERE id_lice_encr=:u");
-    $st->execute(['u'=>$uuid]); $r = $st->fetch();
-    if (!$r) fail('LICENSE_NOT_FOUND','Licencia no encontrada',404);
-    if (!(bool)$r['booking_enabled']) fail('LICENSE_INACTIVE','Licencia inactiva',422);
-    return ['id'=>(int)$r['license_id'],'uuid'=>(string)$r['license_uuid']];
+    $safe = str_replace("'", "''", $idLiceEncr);
+    $rows = ejecutarQueryAzureSQLServerV2("SELECT TOP 1 id_lice, id_lice_encr, ISNULL(booking_enabled,1) AS booking_enabled FROM {$table} WHERE id_lice_encr = '{$safe}'", true);
+    if (!$rows) fail('LICENSE_NOT_FOUND','Licencia no encontrada',404);
+    $r = (array) $rows[0];
+    if (!(bool)($r['booking_enabled'] ?? 1)) fail('LICENSE_INACTIVE','Licencia inactiva',422);
+    return ['id'=>(int)$r['id_lice'],'uuid'=>(string)($r['id_lice_encr'] ?? $idLiceEncr)];
 }
 
 function run(string $route): void {
     $appointmentsTable = (string) cfg('BOOKING_TABLE_APPOINTMENTS', 't_cita');
     try {
         if ($route === 'availability') {
-            $u=(string)($_GET['licenseUuid'] ?? ''); $encr=(string)($_GET['id_lice_encr'] ?? ''); $date=(string)($_GET['date'] ?? ''); $dur=(int)($_GET['durationMinutes'] ?? 30);
+            $encr=(string)($_GET['id_lice_encr'] ?? ''); $date=(string)($_GET['date'] ?? ''); $dur=(int)($_GET['durationMinutes'] ?? 30);
             if (!$date) fail('VALIDATION_ERROR','date es obligatorio');
-            $lic=license_or_fail($u,$encr);
+            $lic=license_or_fail($encr);
             $st=db()->prepare("SELECT fecha_ini AS start_at,fecha_fin AS end_at,estado AS status FROM {$appointmentsTable} WHERE id_lice=:l AND CAST(fecha_ini AS DATE)=:d");
             $st->execute(['l'=>$lic['id'],'d'=>$date]); $occ=$st->fetchAll();
             $start=strtotime($date.' 09:00:00'); $end=strtotime($date.' 17:00:00'); $slots=[];
@@ -51,12 +43,70 @@ function run(string $route): void {
         }
         if ($route === 'appointments_create') {
             $in=json_in(); require_fields($in,['startAt','customerDocument','customerName','customerPhone']);
-            $lic=license_or_fail((string)($in['licenseUuid']??''),(string)($in['id_lice_encr']??''));
+            $lic=license_or_fail((string)($in['id_lice_encr']??''));
             $dur=(int)($in['durationMinutes']??30); $start=new DateTimeImmutable((string)$in['startAt']); $end=$start->modify("+$dur minutes");
             $q=db()->prepare("INSERT INTO {$appointmentsTable} (id_lice,documento,nombre,telefono,email,fecha_ini,fecha_fin,duracion,tipo_servicio,id_profesional,notas,estado) VALUES (:l,:d,:n,:p,:e,:s,:en,:du,:st,:pr,:no,'pending')");
             $q->execute(['l'=>$lic['id'],'d'=>$in['customerDocument'],'n'=>$in['customerName'],'p'=>$in['customerPhone'],'e'=>$in['customerEmail']??null,'s'=>$start->format('Y-m-d H:i:s'),'en'=>$end->format('Y-m-d H:i:s'),'du'=>$dur,'st'=>$in['serviceType']??null,'pr'=>$in['professionalId']??null,'no'=>$in['notes']??null]);
             ok(['licenseId'=>$lic['id']], 'Cita creada', 201);
         }
+
+        if ($route === 'appointments_public_get') {
+            $input = array_merge($_GET, json_in());
+            $id = (int)($input['appointmentId'] ?? 0);
+            if ($id <= 0) fail('VALIDATION_ERROR','appointmentId inválido');
+
+            $st = db()->prepare("SELECT TOP 1 id_cita, id_lice, nombre, telefono, email, fecha_ini, fecha_fin, duracion, tipo_servicio, id_profesional, notas, estado FROM {$appointmentsTable} WHERE id_cita=:id");
+            $st->execute(['id'=>$id]);
+            $r = $st->fetch();
+            if (!$r) fail('APPOINTMENT_NOT_FOUND','Cita no encontrada',404);
+            ok(['appointment'=>$r]);
+        }
+
+
+
+        if ($route === 'appointments_list') {
+            $input = array_merge($_GET, json_in());
+            $lic = license_or_fail((string)($input['id_lice_encr'] ?? ''));
+            $st = db()->prepare("SELECT id_cita, id_lice, documento, nombre, telefono, email, fecha_ini, fecha_fin, duracion, tipo_servicio, id_profesional, notas, estado FROM {$appointmentsTable} WHERE id_lice=:l ORDER BY fecha_ini ASC");
+            $st->execute(['l'=>$lic['id']]);
+            ok(['licenseId'=>$lic['id'], 'appointments'=>$st->fetchAll()]);
+        }
+
+        if ($route === 'appointments_update') {
+            $in = json_in();
+            $id = (int)($in['appointmentId'] ?? 0);
+            if ($id <= 0) fail('VALIDATION_ERROR','appointmentId inválido');
+            $lic = license_or_fail((string)($in['id_lice_encr'] ?? ''));
+
+            $st = db()->prepare("SELECT TOP 1 id_cita FROM {$appointmentsTable} WHERE id_cita=:id AND id_lice=:l");
+            $st->execute(['id'=>$id, 'l'=>$lic['id']]);
+            if (!$st->fetch()) fail('APPOINTMENT_NOT_FOUND','Cita no encontrada',404);
+
+            db()->prepare("UPDATE {$appointmentsTable} SET nombre=:n, telefono=:p, email=:e, notas=:no WHERE id_cita=:id AND id_lice=:l")
+                ->execute([
+                    'n'=>$in['customerName'] ?? null,
+                    'p'=>$in['customerPhone'] ?? null,
+                    'e'=>$in['customerEmail'] ?? null,
+                    'no'=>$in['notes'] ?? null,
+                    'id'=>$id,
+                    'l'=>$lic['id'],
+                ]);
+            ok(['appointmentId'=>$id, 'licenseId'=>$lic['id']], 'Cita actualizada');
+        }
+
+        if ($route === 'appointments_delete') {
+            $in = json_in();
+            $id = (int)($in['appointmentId'] ?? ($_GET['appointmentId'] ?? 0));
+            if ($id <= 0) fail('VALIDATION_ERROR','appointmentId inválido');
+            $lic = license_or_fail((string)($in['id_lice_encr'] ?? $_GET['id_lice_encr'] ?? ''));
+
+            $st = db()->prepare("DELETE FROM {$appointmentsTable} WHERE id_cita=:id AND id_lice=:l");
+            $st->execute(['id'=>$id, 'l'=>$lic['id']]);
+            if ($st->rowCount() === 0) fail('APPOINTMENT_NOT_FOUND','Cita no encontrada',404);
+            ok(['appointmentId'=>$id, 'licenseId'=>$lic['id']], 'Cita eliminada');
+        }
+
+
 
         if (strpos($route, 'admin_') === 0) {
             $pdo = db();
