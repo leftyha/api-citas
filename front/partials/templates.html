@@ -1,0 +1,95 @@
+<template id="tpl-shell">
+  <div class="relative z-10 rounded-xl bg-slate-900/10">
+    <article class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-900/15">
+      <div class="relative border-b border-brand-line px-5 pb-4 pt-4 text-center">
+        <button type="button" id="back-step"
+          class="absolute left-4 top-4 cursor-pointer border-0 bg-transparent text-xl text-brand-dark hover:text-black transition">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <h2 id="card-title" class="text-2xl font-extrabold">Nueva Reserva</h2>
+        <p id="card-subtitle" class="mt-1 text-base text-slate-600"></p>
+        <p id="card-location" class="mt-1 text-base text-slate-600"></p>
+        <p id="selected-slot" class="mt-1 text-sm text-brand-muted"></p>
+        <p id="selected-service" class="mt-1 text-base font-semibold text-slate-800"></p>
+        <p id="step-title" class="mt-1 text-sm text-brand-muted"> Seleccionar servicio </p>
+      </div>
+      <form id="booking-form" class="grid gap-3">
+        <section id="step-service" class="grid gap-3"></section>
+        <section id="step-calendar" class="hidden grid gap-3 p-5"></section>
+        <section id="step-confirm" class="hidden grid gap-3 p-5"></section>
+      </form>
+    </article>
+  </div>
+</template>
+<template id="tpl-service-category">
+  <details class="mb-3 overflow-hidden rounded-md pb-2 last:mb-0" open>
+    <summary class="flex cursor-pointer list-none items-center justify-between py-2 font-bold text-slate-800">
+      <div class="w-full border-b border-slate-300 flex justify-between items-center p-5">
+        <span data-category-name></span>
+        <i class="fa-solid fa-chevron-down text-lg transition-transform"></i>
+      </div>
+    </summary>
+    <div class="grid gap-0 py-1" data-category-services></div>
+  </details>
+</template>
+<template id="tpl-service-option">
+  <button type="button" class="service-option w-full border-0 border-b border-slate-300 bg-transparent py-3 px-5 text-left text-slate-700 transition hover:text-slate-900" data-service-id></button>
+</template>
+<template id="tpl-calendar-step">
+  <div class="grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-2">
+    <button id="prev-month" type="button"
+      class="rounded-md border border-slate-300 bg-white p-2 hover:bg-slate-100 transition">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <h3 id="calendar-title" class="text-center capitalize font-semibold"></h3>
+    <button id="next-month" type="button"
+      class="rounded-md border border-slate-300 bg-white p-2 hover:bg-slate-100 transition">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+  </div>
+  <div id="calendar-grid" class="grid min-h-[300px] grid-cols-7 gap-1"></div>
+  <div id="time-groups" class="grid gap-3"></div>
+  <button id="continue-to-confirm" class="w-full rounded-full bg-brand-dark px-4 py-3 text-base font-bold text-white" type="button"> Continuar </button>
+</template>
+<template id="tpl-confirm-step">
+  <p class="text-sm text-brand-muted text-center font-extrabold">Datos de la reserva</p>
+  <section class="grid gap-3 px-10">
+    <input name="name" placeholder="Nombre y apellido" class="w-full rounded border border-slate-300 bg-white px-3 py-2" required>
+    <input id="phone" name="phone" placeholder="Teléfono" class="w-full rounded border border-slate-300 bg-white px-3 py-2" required>
+    <input name="email" type="email" placeholder="Tu correo electrónico" class="w-full rounded border border-slate-300 bg-white px-3 py-2" required>
+    <textarea name="notes" placeholder="Observaciones" class="min-h-[78px] w-full resize-y rounded border border-slate-300 bg-white px-3 py-2"></textarea>
+    <label class="flex items-start gap-2 text-sm text-slate-600">
+      <input name="terms" type="checkbox" required>
+      <span>He leído y acepto los Términos y condiciones y Política de Privacidad.</span>
+    </label>
+    <label class="flex items-start gap-2 text-sm text-slate-600">
+      <input name="privacy" type="checkbox" required>
+      <span>He leído y acepto los Política de Privacidad.</span>
+    </label>
+    <button class="rounded-full bg-brand-dark px-4 py-3 text-base font-bold text-white" type="submit"> Confirmar reserva </button>
+  </section>
+</template>
+<template id="tpl-calendar-weekday">
+  <div class="text-center text-xs text-brand-muted" data-weekday-label></div>
+</template>
+<template id="tpl-calendar-day-button">
+  <button type="button" class="rounded-full font-bold border border-slate-500 bg-transparent px-1 py-2 text-sm" data-day></button>
+</template>
+<template id="tpl-time-group">
+  <section class="grid gap-2">
+    <h4 class="text-slate-700" data-group-label></h4>
+    <div class="grid grid-cols-3 gap-2" data-group-slots></div>
+  </section>
+</template>
+<template id="tpl-time-slot-button">
+  <button type="button" class="w-full text-center font-bold rounded-full border border-slate-500 bg-white px-3 py-2 text-left" data-time></button>
+</template>
+<template id="tpl-no-slots">
+  <p class="text-sm text-brand-muted">Sin horarios</p>
+</template>
+<template id="tpl-hero-link-item">
+  <li>
+    <a target="_blank" rel="noreferrer"></a>
+  </li>
+</template>
+<div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col gap-3"></div>

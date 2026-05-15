@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Marcación online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18/build/css/intlTelInput.min.css">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                dark: '#2f3743',
+                muted: '#6d7886',
+                line: '#d7dce3',
+                card: '#f5f6f8',
+                page: '#eceef1'
+              }
+            }
+          }
+        }
+      };
+    </script>
+  </head>
+  <body class="m-0 font-sans text-slate-700">
+    <div id="layout-root"></div>
+    <div id="templates-root"></div>
+
+    <script defer src="./js/html-loader.js"></script>
+    <script defer src="./js/mock/dummy-system.js"></script>
+    <script defer src="./js/lib/api.js"></script>
+    <script defer src="./js/components/date-time.js"></script>
+    <script defer src="./js/components/config.js"></script>
+    <script defer src="./js/components/ui.js"></script>
+    <script defer src="./js/app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18/build/js/intlTelInput.min.js"></script>
+  </body>
+</html>
