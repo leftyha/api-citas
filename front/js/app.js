@@ -4,13 +4,12 @@ const {
   generateTimeSlots,
   monthTitle,
   normalizeDate,
-  toDateTime,
-  toIsoRangeForMonth
+  toDateTime
 } = window.BookingDateTime;
 const {
   getDefaultConfig,
   getOpeningHoursForDate,
-  isSlotBlocked,
+  parseApiBaseUrl,
   parseLicenseId,
   resolveDataSourceLabel
 } = window.BookingConfig;
@@ -43,10 +42,11 @@ async function bootstrap() {
   const confirmStep = document.getElementById('step-confirm');
 
   const licenseId = parseLicenseId(window.location.search);
+  const apiBaseUrl = parseApiBaseUrl(window.location.search);
   let api;
 
   try {
-    api = new ApiClient({ licenseId });
+    api = new ApiClient({ licenseId, apiBaseUrl });
   } catch {
     showAlert('Cargando configuración...', 'info');
     return;
@@ -54,7 +54,6 @@ async function bootstrap() {
 
   const state = {
     config: getDefaultConfig(),
-    appointments: [],
     currentStep: 'service',
     selectedDate: normalizeDate(new Date()),
     selectedTime: '',
@@ -64,7 +63,10 @@ async function bootstrap() {
 
   showAlert('Cargando configuración...', 'info');
   try {
-    state.config = await api.getConfig();
+    state.config = {
+      ...state.config,
+      ...(await api.getConfig())
+    };
     showAlert(`Configuración cargada · ${resolveDataSourceLabel(state.config)}`, 'success');
   } catch (error) {
     showAlert(`No se pudo cargar configuración remota (${error.message}). Usando valores por defecto.`, 'warning');
@@ -124,14 +126,13 @@ async function bootstrap() {
     const service = selectedService();
     if (!date || !service) return;
 
-    const { from, to } = toIsoRangeForMonth(date);
+    let availableTimesFromApi = null;
 
     try {
-      const response = await api.getAppointments({ from, to });
-      state.appointments = response?.appointments || [];
+      availableTimesFromApi = await api.getAvailability({ date });
     } catch (error) {
-      state.appointments = [];
-      showAlert(`No se pudieron consultar citas (${error.message}). Mostrando agenda vacía.`, 'warning');
+      availableTimesFromApi = null;
+      showAlert(`No se pudo consultar disponibilidad (${error.message}).`, 'warning');
     }
 
     const hours = getOpeningHoursForDate(state.config, date);
@@ -150,7 +151,7 @@ async function bootstrap() {
 
     state.slots = slotTimes.map((time) => ({
       time,
-      available: !isSlotBlocked(date, time, service.durationMinutes || 30, state.appointments)
+      available: availableTimesFromApi ? availableTimesFromApi.includes(time) : true
     }));
 
     const firstAvailable = state.slots.find((slot) => slot.available);
