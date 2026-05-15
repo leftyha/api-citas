@@ -1,9 +1,5 @@
 (function initBookingApi(global) {
-  const ENDPOINTS = {
-    configuration: '/api/configuration',
-    appointments: '/api/appointments',
-    createAppointment: '/api/appointments/create'
-  };
+  const DEFAULT_API_BASE = window.location.origin;
 
   function assertLicenseId(licenseId) {
     const normalized = String(licenseId || '').trim();
@@ -41,31 +37,69 @@
   }
 
   class ApiClient {
-    constructor({ licenseId }) {
+    constructor({ licenseId, apiBaseUrl = DEFAULT_API_BASE }) {
       this.licenseId = assertLicenseId(licenseId);
+      this.apiBaseUrl = String(apiBaseUrl || DEFAULT_API_BASE).replace(/\/+$/, '');
+    }
+
+    buildUrl(path, params = {}) {
+      const url = new URL(path, `${this.apiBaseUrl}/`);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          url.searchParams.set(key, String(value));
+        }
+      });
+      return url.toString();
     }
 
     async getConfig() {
-      const params = new URLSearchParams({ licenseId: this.licenseId });
-      return request(`${ENDPOINTS.configuration}?${params.toString()}`);
+      return {
+        debug: {
+          source: 'remote-url'
+        }
+      };
+    }
+
+    async getAvailability({ date }) {
+      const url = this.buildUrl('availability.php', {
+        id_lice_encr: this.licenseId,
+        date
+      });
+      const response = await request(url);
+      const slots = response?.data?.slots || [];
+      return slots.map((slot) => {
+        const start = new Date(slot.startAt);
+        const hh = String(start.getHours()).padStart(2, '0');
+        const mm = String(start.getMinutes()).padStart(2, '0');
+        return `${hh}:${mm}`;
+      });
     }
 
     async getAppointments({ from, to }) {
-      const params = new URLSearchParams({
-        licenseId: this.licenseId,
+      const url = this.buildUrl('appointments_list.php', {
+        id_lice_encr: this.licenseId,
         from,
         to
       });
-
-      return request(`${ENDPOINTS.appointments}?${params.toString()}`);
+      const response = await request(url);
+      const appointments = (response?.data?.appointments || []).map((appointment) => ({
+        ...appointment,
+        startAt: appointment.fech_cita,
+        endAt: new Date(new Date(appointment.fech_cita).getTime() + (30 * 60 * 1000)).toISOString()
+      }));
+      return { appointments };
     }
 
     async createAppointment(payload) {
-      return request(ENDPOINTS.createAppointment, {
+      const customerDocument = payload?.customer?.email || payload?.customer?.phone || payload?.customer?.name || 'SIN_DOCUMENTO';
+      const url = this.buildUrl('appointments_create.php');
+      return request(url, {
         method: 'POST',
         body: JSON.stringify({
-          licenseId: this.licenseId,
-          ...payload
+          id_lice_encr: this.licenseId,
+          startAt: payload.startAt,
+          customerDocument,
+          status: 'pending'
         })
       });
     }

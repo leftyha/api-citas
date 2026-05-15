@@ -11,6 +11,7 @@ const {
   getDefaultConfig,
   getOpeningHoursForDate,
   isSlotBlocked,
+  parseApiBaseUrl,
   parseLicenseId,
   resolveDataSourceLabel
 } = window.BookingConfig;
@@ -43,10 +44,11 @@ async function bootstrap() {
   const confirmStep = document.getElementById('step-confirm');
 
   const licenseId = parseLicenseId(window.location.search);
+  const apiBaseUrl = parseApiBaseUrl(window.location.search);
   let api;
 
   try {
-    api = new ApiClient({ licenseId });
+    api = new ApiClient({ licenseId, apiBaseUrl });
   } catch {
     showAlert('Cargando configuración...', 'info');
     return;
@@ -64,7 +66,10 @@ async function bootstrap() {
 
   showAlert('Cargando configuración...', 'info');
   try {
-    state.config = await api.getConfig();
+    state.config = {
+      ...state.config,
+      ...(await api.getConfig())
+    };
     showAlert(`Configuración cargada · ${resolveDataSourceLabel(state.config)}`, 'success');
   } catch (error) {
     showAlert(`No se pudo cargar configuración remota (${error.message}). Usando valores por defecto.`, 'warning');
@@ -125,6 +130,14 @@ async function bootstrap() {
     if (!date || !service) return;
 
     const { from, to } = toIsoRangeForMonth(date);
+    let availableTimesFromApi = null;
+
+    try {
+      availableTimesFromApi = await api.getAvailability({ date });
+    } catch (error) {
+      availableTimesFromApi = null;
+      showAlert(`No se pudo consultar disponibilidad (${error.message}).`, 'warning');
+    }
 
     try {
       const response = await api.getAppointments({ from, to });
@@ -150,7 +163,8 @@ async function bootstrap() {
 
     state.slots = slotTimes.map((time) => ({
       time,
-      available: !isSlotBlocked(date, time, service.durationMinutes || 30, state.appointments)
+      available: (availableTimesFromApi ? availableTimesFromApi.includes(time) : true)
+        && !isSlotBlocked(date, time, service.durationMinutes || 30, state.appointments)
     }));
 
     const firstAvailable = state.slots.find((slot) => slot.available);
