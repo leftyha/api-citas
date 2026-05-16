@@ -66,7 +66,7 @@
 
   function parseLicenseId(search) {
     const params = new URLSearchParams(search);
-    const provided = String(params.get('licenseId') || '').trim();
+    const provided = String(params.get('id_lice_encr') || params.get('licenseId') || '').trim();
     return provided || 'AFFLELOU_FUNCHAL_01';
   }
 

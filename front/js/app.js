@@ -5,12 +5,10 @@ const {
   monthTitle,
   normalizeDate,
   toDateTime,
-  toIsoRangeForMonth
 } = window.BookingDateTime;
 const {
   getDefaultConfig,
   getOpeningHoursForDate,
-  isSlotBlocked,
   parseLicenseId,
   resolveDataSourceLabel
 } = window.BookingConfig;
@@ -54,7 +52,6 @@ async function bootstrap() {
 
   const state = {
     config: getDefaultConfig(),
-    appointments: [],
     currentStep: 'service',
     selectedDate: normalizeDate(new Date()),
     selectedTime: '',
@@ -124,34 +121,35 @@ async function bootstrap() {
     const service = selectedService();
     if (!date || !service) return;
 
-    const { from, to } = toIsoRangeForMonth(date);
-
     try {
-      const response = await api.getAppointments({ from, to });
-      state.appointments = response?.appointments || [];
+      const response = await api.getAvailability({ date });
+      const availableStarts = new Set((response?.slots || []).map((slot) => {
+        const start = String(slot.startAt || '');
+        return start ? new Date(start).toISOString().slice(11, 16) : '';
+      }).filter(Boolean));
+
+      const hours = getOpeningHoursForDate(state.config, date);
+      if (!hours) {
+        state.slots = [];
+        renderTimeGroups(timeGroups, groupSlots([]), state.selectedTime);
+        return;
+      }
+
+      const slotTimes = generateTimeSlots({
+        start: hours.start,
+        end: hours.end,
+        step: state.config.bookingRules?.slotIntervalMinutes || 30,
+        duration: service.durationMinutes || 30
+      });
+
+      state.slots = slotTimes.map((time) => ({
+        time,
+        available: availableStarts.has(time)
+      }));
     } catch (error) {
-      state.appointments = [];
-      showAlert(`No se pudieron consultar citas (${error.message}). Mostrando agenda vacía.`, 'warning');
-    }
-
-    const hours = getOpeningHoursForDate(state.config, date);
-    if (!hours) {
       state.slots = [];
-      renderTimeGroups(timeGroups, groupSlots([]), state.selectedTime);
-      return;
+      showAlert(`No se pudo consultar disponibilidad (${error.message}).`, 'warning');
     }
-
-    const slotTimes = generateTimeSlots({
-      start: hours.start,
-      end: hours.end,
-      step: state.config.bookingRules?.slotIntervalMinutes || 30,
-      duration: service.durationMinutes || 30
-    });
-
-    state.slots = slotTimes.map((time) => ({
-      time,
-      available: !isSlotBlocked(date, time, service.durationMinutes || 30, state.appointments)
-    }));
 
     const firstAvailable = state.slots.find((slot) => slot.available);
     if (!state.selectedTime || !state.slots.some((slot) => slot.time === state.selectedTime && slot.available)) {
@@ -263,6 +261,7 @@ async function bootstrap() {
     const payload = {
       serviceId: state.selectedServiceId,
       startAt: toDateTime(state.selectedDate, state.selectedTime).toISOString(),
+      customerDocument: String(formData.get('customerDocument') || '').trim(),
       durationMinutes: service?.durationMinutes || 30,
       customer: {
         name: String(formData.get('name') || '').trim(),

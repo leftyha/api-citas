@@ -1,8 +1,7 @@
 (function initBookingApi(global) {
   const ENDPOINTS = {
-    configuration: '/api/configuration',
-    appointments: '/api/appointments',
-    createAppointment: '/api/appointments/create'
+    availability: '/availability.php',
+    createAppointment: '/appointments_create.php'
   };
 
   function assertLicenseId(licenseId) {
@@ -46,26 +45,26 @@
     }
 
     async getConfig() {
-      const params = new URLSearchParams({ licenseId: this.licenseId });
-      return request(`${ENDPOINTS.configuration}?${params.toString()}`);
+      throw new Error('CONFIG_ENDPOINT_NOT_AVAILABLE');
     }
 
-    async getAppointments({ from, to }) {
+    async getAvailability({ date }) {
       const params = new URLSearchParams({
-        licenseId: this.licenseId,
-        from,
-        to
+        id_lice_encr: this.licenseId,
+        date
       });
 
-      return request(`${ENDPOINTS.appointments}?${params.toString()}`);
+      const response = await request(`${ENDPOINTS.availability}?${params.toString()}`);
+      return { slots: response?.data?.slots || [] };
     }
 
     async createAppointment(payload) {
       return request(ENDPOINTS.createAppointment, {
         method: 'POST',
         body: JSON.stringify({
-          licenseId: this.licenseId,
-          ...payload
+          id_lice_encr: this.licenseId,
+          startAt: payload.startAt,
+          customerDocument: payload.customerDocument
         })
       });
     }
