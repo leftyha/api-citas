@@ -8,6 +8,7 @@ const {
 } = window.BookingDateTime;
 const {
   getDefaultConfig,
+  parseConfigEndpoint,
   getOpeningHoursForDate,
   parseLicenseId,
   resolveDataSourceLabel
@@ -41,10 +42,11 @@ async function bootstrap() {
   const confirmStep = document.getElementById('step-confirm');
 
   const licenseId = parseLicenseId(window.location.search);
+  const configEndpoint = parseConfigEndpoint(window.location.search);
   let api;
 
   try {
-    api = new ApiClient({ licenseId });
+    api = new ApiClient({ licenseId, configEndpoint });
   } catch {
     showAlert('Cargando configuración...', 'info');
     return;

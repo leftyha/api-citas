@@ -70,6 +70,12 @@
     return provided || 'AFFLELOU_FUNCHAL_01';
   }
 
+  function parseConfigEndpoint(search) {
+    const params = new URLSearchParams(search);
+    const provided = String(params.get('config_url') || params.get('configUrl') || '').trim();
+    return provided || '/api/configuration';
+  }
+
   function getOpeningHoursForDate(config, date) {
     const weekday = global.BookingDateTime.getWeekday(date);
     return (config.openingHours || []).find((item) => item.weekday === weekday) || null;
@@ -99,6 +105,7 @@
     getOpeningHoursForDate,
     isSlotBlocked,
     parseLicenseId,
+    parseConfigEndpoint,
     resolveDataSourceLabel
   };
 }(window));
