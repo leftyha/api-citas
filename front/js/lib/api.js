@@ -1,5 +1,6 @@
 (function initBookingApi(global) {
   const ENDPOINTS = {
+    configuration: '/api/configuration',
     availability: '/availability.php',
     createAppointment: '/appointments_create.php'
   };
@@ -40,12 +41,18 @@
   }
 
   class ApiClient {
-    constructor({ licenseId }) {
+    constructor({ licenseId, configEndpoint }) {
       this.licenseId = assertLicenseId(licenseId);
+      this.configEndpoint = String(configEndpoint || ENDPOINTS.configuration).trim() || ENDPOINTS.configuration;
     }
 
     async getConfig() {
-      throw new Error('CONFIG_ENDPOINT_NOT_AVAILABLE');
+      const params = new URLSearchParams({
+        id_lice_encr: this.licenseId,
+        licenseId: this.licenseId
+      });
+
+      return request(`${this.configEndpoint}?${params.toString()}`);
     }
 
     async getAvailability({ date }) {
